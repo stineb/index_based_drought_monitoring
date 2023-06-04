@@ -22,7 +22,7 @@ base_query <- site_info |>
     lon
   ) |>
   rename(
-    "subtask" = "sitename",
+    "task" = "sitename",
     "latitude"= "lat",
     "longitude" = "lon"
   ) |>
@@ -57,7 +57,21 @@ full_queries <- lapply(
   bands <- rs_layers(product) |>
     filter(
       IsQA == FALSE
-    ) |>
+    )
+
+  if(product != "MOD11A1.006" ) {
+    bands <- bands |>
+      filter(
+        grepl("refl", Layer, ignore.case = TRUE)
+      )
+  } else {
+    bands <- bands |>
+      filter(
+        grepl("LST_Day", Layer)
+      )
+  }
+
+  bands <- bands |>
     select(
       Layer
     ) |>
@@ -67,8 +81,8 @@ full_queries <- lapply(
     rowwise() |>
     do({
       data.frame(
-        task = product,
-        subtask = .$subtask,
+        subtask = product,
+        task = .$task,
         latitude = .$latitude,
         longitude = .$longitude,
         start = .$start,
@@ -80,28 +94,28 @@ full_queries <- lapply(
     )
 })
 
-# from the basic query build a set of tasks
-tasks <- lapply(full_queries, function(query){
-  appeears::rs_build_task(df = query)
+tasks <- full_queries |>
+  bind_rows() |>
+  ungroup() |>
+  group_split(task, subtask)
+
+tasks <- lapply(
+  tasks, function(task){
+    appeears::rs_build_task(task)
 })
+
+tasks <- tasks[1:10]
 
 # request the task to be executed
 # don't download, just return
 # the task ID / request calls
-requests <- lapply(tasks,function(task){
-  rs_request(
-    request = task,
+requests <- rs_request_batch(
+    request = tasks,
     user = "khufkens",
-    transfer = FALSE,
-    path = "data/",
-    verbose = TRUE
+    path = "data-raw/modis_data/"
   )
-})
 
 message(
 " Downloads might take a while to compile,
  check back manually using rs_list_task()!"
 )
-
-
-
