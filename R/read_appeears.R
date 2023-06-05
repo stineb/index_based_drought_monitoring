@@ -1,4 +1,3 @@
-
 #' Reads in AppEEARS MODIS data
 #'
 #' Reads in AppEEARS MODIS data and converts from the
