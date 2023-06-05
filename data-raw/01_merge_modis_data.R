@@ -3,6 +3,7 @@
 
 library(dplyr)
 library(readr)
+source("R/read_appeears.R")
 
 # list all sites (folder)
 sites <- list.dirs("data-raw/modis_data/")
@@ -13,20 +14,22 @@ files <- list.files(
   full.names = TRUE
   )
 
-test <- readr::read_csv(files[2])
+readr::read_csv(files[1])
 
-#test <- read_data(files[1])
-test <- read_data(
-  files[3],
-  name = "Nadir_Refl",
-  filter_bands = FALSE
+test <- read_appeears(
+  files[1],
+  name = "Nadir_Ref"
   )
 
-print(head(test))
+print(test, n = 20)
+test$value[test$value > 5000] <- NA
 
+plot(test$date, test$value)
 
-mutate(ndvi = (sur_refl_b02 * 0.0001 - sur_refl_b01 * 0.0001)/(sur_refl_b02 * 0.0001 + sur_refl_b01 * 0.0001)) %>%
-  mutate(evi = 2.5 * (sur_refl_b02 * 0.0001 - sur_refl_b01 * 0.0001) / (sur_refl_b02 * 0.0001 + 6 * sur_refl_b01 * 0.0001 - 7.5 * sur_refl_b03* 0.0001 + 1)) %>%
-  mutate(NIRv = ndvi * (sur_refl_b02 * 0.0001)) %>%  #NIR
-  mutate(cci = (sur_refl_b11 * 0.0001 - sur_refl_b01 * 0.0001)/(sur_refl_b11 * 0.0001 + sur_refl_b01 * 0.0001)) %>%
-  mutate(pri = (sur_refl_b11 * 0.0001 - sur_refl_b12 * 0.0001)/(sur_refl_b11 * 0.0001 + sur_refl_b12 * 0.0001))
+# mutate(
+#   ndvi = (sur_refl_b02 - sur_refl_b01)/(sur_refl_b02  + sur_refl_b01 ),
+#   evi = 2.5 * (sur_refl_b02  - sur_refl_b01 ) / (sur_refl_b02  + 6 * sur_refl_b01  - 7.5 * sur_refl_b03 + 1),
+#   NIRv = ndvi * (sur_refl_b02 ),
+#   cci = (sur_refl_b11  - sur_refl_b01 )/(sur_refl_b11  + sur_refl_b01 ),
+#   pri = (sur_refl_b11  - sur_refl_b12 )/(sur_refl_b11  + sur_refl_b12 )
+# )
