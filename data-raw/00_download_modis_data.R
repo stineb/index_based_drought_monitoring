@@ -1,5 +1,5 @@
 # Download all remote sensing data using
-# appeears
+# appeears, takes about 8h to complete
 
 library(appeears)
 library(dplyr)
@@ -19,16 +19,19 @@ base_query <- site_info |>
   select(
     sitename,
     lat,
-    lon
+    lon,
+    date_start,
+    date_end
   ) |>
   rename(
     "task" = "sitename",
     "latitude"= "lat",
-    "longitude" = "lon"
+    "longitude" = "lon",
+    "start" = "date_start",
+    "end" = "date_end",
   ) |>
   mutate(
-    start = "2001-01-01",
-    end = "2022-12-31"
+    start = ifelse(start < "2001-01-01", "2001-01-01", start)
   )
 
 # list products to download
@@ -90,8 +93,7 @@ full_queries <- lapply(
         product = product,
         layer = as.character(bands)
       )
-    }
-    )
+    })
 })
 
 tasks <- full_queries |>
@@ -104,18 +106,28 @@ tasks <- lapply(
     appeears::rs_build_task(task)
 })
 
-tasks <- tasks[1:10]
-
 # request the task to be executed
 # don't download, just return
 # the task ID / request calls
 requests <- rs_request_batch(
-    request = tasks,
+    request = tasks[265:280],
     user = "khufkens",
+    workers = 10,
     path = "data-raw/modis_data/"
   )
 
-message(
-" Downloads might take a while to compile,
- check back manually using rs_list_task()!"
-)
+# clean up the files which are not required
+# first list all files, then select the
+# ones to remove (kick those out)
+downloaded_files <- list.files(
+  "data-raw/modis_data/",
+  "*",
+  full.names = TRUE,
+  recursive = TRUE
+  )
+
+files_to_remove <- downloaded_files[!grepl("results", downloaded_files)]
+
+# remove files
+file.remove(files_to_remove)
+
