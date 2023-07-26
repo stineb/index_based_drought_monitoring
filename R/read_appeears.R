@@ -22,7 +22,7 @@ read_appeears <- function(
 ) {
 
   # read in file
-  df <- readr::read_csv(file) |>
+  df <- readr::read_csv(file, show_col_types = FALSE) |>
     select(
       Category,
       Date,
@@ -80,9 +80,9 @@ read_appeears <- function(
         rowwise() |>
         mutate(
           band_nr =
-            as.numeric(gsub("b","",nth(unlist(str_split(band, "_")),5))),
+            as.numeric(gsub("b","",nth(unlist(stringr::str_split(band, "_")),5))),
           bitmask_band_nr =
-            as.numeric(nth(unlist(str_split(bitmask_band, "_")),7))
+            as.numeric(nth(unlist(stringr::str_split(bitmask_band, "_")),7))
         ) |>
         filter(
           band_nr == bitmask_band_nr
@@ -107,9 +107,9 @@ read_appeears <- function(
         rowwise() |>
         mutate(
           band_nr =
-            as.numeric(gsub("b","",nth(unlist(str_split(band, "_")),5))),
+            as.numeric(gsub("b","",nth(unlist(stringr::str_split(band, "_")),5))),
           bitmask_band_nr =
-            as.numeric(nth(unlist(str_split(bitmask_band, "_")),10))
+            as.numeric(nth(unlist(stringr::str_split(bitmask_band, "_")),10))
         ) |>
         filter(
           band_nr == bitmask_band_nr
@@ -165,10 +165,10 @@ read_appeears <- function(
         rowwise() |>
         mutate(
           band_nr =
-            as.numeric(gsub("Band","",nth(unlist(str_split(band, "_")),5))),
+            as.numeric(gsub("Band","",nth(unlist(stringr::str_split(band, "_")),5))),
           bitmask_band_nr =
             as.numeric(
-              gsub("Band","",nth(unlist(str_split(bitmask_band, "_")),8)))
+              gsub("Band","",nth(unlist(stringr::str_split(bitmask_band, "_")),8)))
         ) |>
         filter(
           band_nr == bitmask_band_nr
