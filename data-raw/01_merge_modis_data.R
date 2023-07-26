@@ -38,7 +38,7 @@ site_data <- lapply(files, function(file) {
   if(product == "MOD11A1"){
     df <- read_appeears(
       file,
-      name = "LST_Day_1km"
+      name = "LST_Daykm"
     )
   }
 
@@ -62,13 +62,29 @@ site_data <- lapply(files, function(file) {
   return(df)
 })
 
+# combine all sites
 site_data <- bind_rows(site_data)
-saveRDS(site_data, "data/MODIS_reflectance_data.rds", compress = "xz")
 
-# mutate(
-#   ndvi = (sur_refl_b02 - sur_refl_b01)/(sur_refl_b02  + sur_refl_b01 ),
-#   evi = 2.5 * (sur_refl_b02  - sur_refl_b01 ) / (sur_refl_b02  + 6 * sur_refl_b01  - 7.5 * sur_refl_b03 + 1),
-#   NIRv = ndvi * (sur_refl_b02),
-#   cci = (sur_refl_b11  - sur_refl_b01 )/(sur_refl_b11  + sur_refl_b01 ),
-#   pri = (sur_refl_b11  - sur_refl_b12 )/(sur_refl_b11  + sur_refl_b12 )
-# )
+# rename band (only retain band information
+# no product prefix)
+site_data$band <- unlist(
+  lapply(
+    stringr::str_split(site_data$band,"_"),
+    function(x){paste(x[3:length(x)], collapse = "_")
+    }
+  )
+)
+
+# rename bands ending with _1
+site_data <- site_data |>
+  mutate(
+    # note the ends with $ character
+    band = gsub("_1$", "",  band)
+  )
+
+# save full data set
+saveRDS(
+  site_data,
+  "data/MODIS_reflectance_data.rds",
+  compress = "xz"
+  )
