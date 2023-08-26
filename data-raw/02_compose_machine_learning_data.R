@@ -16,8 +16,8 @@ flue <- readr::read_csv("data/flue_stocker18nphyt.csv")
 site_data_wide <- site_data |>
   select(
     site,
-    date,
     band,
+    date,
     value
   ) |>
   pivot_wider(
@@ -38,8 +38,7 @@ site_data_wide <- site_data_wide |>
 # merge with flue
 site_data_wide <- left_join(
   flue,
-  site_data_wide,
-  by = c("site", "date")
+  site_data_wide
   )
 
 # interpolate missing values and daily
@@ -61,7 +60,7 @@ site_data_wide <- site_data_wide |>
 # save the data with the indices and flue values
 # for machine learning training
 saveRDS(
-  site_data,
+  site_data_wide,
   "data/machine_learning_training_data.rds",
   compress = "xz"
 )

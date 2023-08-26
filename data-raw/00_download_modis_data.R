@@ -98,8 +98,8 @@ full_queries <- lapply(
 
 tasks <- full_queries |>
   bind_rows() |>
-  ungroup() |>
-  group_split(task, subtask)
+  group_by(task, subtask) |>
+  group_split()
 
 tasks <- lapply(
   tasks, function(task){
