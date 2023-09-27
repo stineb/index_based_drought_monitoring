@@ -1,21 +1,21 @@
 #' Aligns data by events
 #'
 #' Uses a vectory specifying whether data falls into an event to reshape data, aligning by the onset of the event
-#' 
-#' @param df A data frame containing all data continuously along time, required column named \code{site, date}. 
-#' @param df_isevent A data frame \code{nrow(df_isevent)==nrow(df)} specifying whether respective dates 
-#' (matching dates in \code{df}), fall satisfy a condition that is used to define events. Events are 
-#' consecutive dates, where this condition is satisfied (minimum length for defining an event is given by 
+#'
+#' @param df A data frame containing all data continuously along time, required column named \code{site, date}.
+#' @param df_isevent A data frame \code{nrow(df_isevent)==nrow(df)} specifying whether respective dates
+#' (matching dates in \code{df}), fall satisfy a condition that is used to define events. Events are
+#' consecutive dates, where this condition is satisfied (minimum length for defining an event is given by
 #' \code{leng_threshold}). Required columns \code{site, date}
 #' @param dovars A vector of character strings specifying which columns of \code{df} to re-arrange.
-#' @param before An integer specifying the number of days before the event onset to be retained in re-arranged data 
-#' @param after An integer specifying the number of days after the event onset to be retained in re-arranged data 
+#' @param before An integer specifying the number of days before the event onset to be retained in re-arranged data
+#' @param after An integer specifying the number of days after the event onset to be retained in re-arranged data
 #'
 #' @return An aligned data frame
 #' @export
 #'
 #' @examples df_alg <- align_events( df, truefalse, before=30, after=300 )
-#' 
+#'
 align_events <- function( df, df_isevent, dovars, leng_threshold, before, after, nbins ){
 
   require( dplyr )
@@ -25,15 +25,15 @@ align_events <- function( df, df_isevent, dovars, leng_threshold, before, after,
   bins  <- seq( from=-before, to=after, by=(after+before)/nbins )
 
   ## merge df_isevent into df
-  df <- df  %>% # left_join( df_isevent, by=c("site", "date")) %>% 
+  df <- df  %>% # left_join( df_isevent, by=c("site", "date")) %>%
     mutate( idx_df = 1:n() )
 
   ##--------------------------------------------------------
   ## Identify events ()
   ##--------------------------------------------------------
-  events <- get_consecutive( 
-              df$isevent, 
-              leng_threshold = leng_threshold, 
+  events <- get_consecutive(
+              df$isevent,
+              leng_threshold = leng_threshold,
               do_merge       = FALSE
               )
 
@@ -56,67 +56,69 @@ align_events <- function( df, df_isevent, dovars, leng_threshold, before, after,
         dday <- dday[ -drophead ]
       }
       addrows <- df %>% slice( idxs ) %>% mutate( dday=dday, inst=iinst )
-      df_dday <- df_dday %>% bind_rows( addrows )              
+      df_dday <- df_dday %>% bind_rows( addrows )
     }
 
-    ##--------------------------------------------------------
-    ## Normalise re-arranged data relative to a certain bin's median for each site
-    ##--------------------------------------------------------
-    ## add column for bin
-    df_dday <- df_dday %>% mutate( inbin  = cut( as.numeric(dday), breaks = bins ) )
-      
-    ## Normalise by median value in dday-bin before drought onset ("zero-bin")
-    ## Get median in zero-bin
-    sdovars  <- paste0("s",  dovars)
-    dsdovars <- paste0("ds", dovars)
-    
-    # ## Add median in zero-bin (dsdovars), separate for each site, aggregated across instances (drought events)
-    # df_dday <- df_dday %>% group_by( site, inbin ) %>%
-    #   summarise_at( vars(one_of(sdovars)), funs(median( ., na.rm=TRUE )) ) %>%
-    #   filter( !is.na(inbin) ) %>% 
-    #   filter( grepl(",0]", inbin) ) %>% 
-    #   setNames( c( "site", "inbin", paste0("d", sdovars) ) ) %>% 
-    #   select(-inbin) %>% 
-    #   right_join(df_dday, by="site") %>% 
+    # ##--------------------------------------------------------
+    # ## Normalise re-arranged data relative to a certain bin's median for each site
+    # ##--------------------------------------------------------
+    # ## add column for bin
+    # df_dday <- df_dday %>% mutate( inbin  = cut( as.numeric(dday), breaks = bins ) )
+    #
+    # ## Normalise by median value in dday-bin before drought onset ("zero-bin")
+    # ## Get median in zero-bin
+    # sdovars  <- paste0("s",  dovars)
+    # dsdovars <- paste0("ds", dovars)
+    #
+    # # ## Add median in zero-bin (dsdovars), separate for each site, aggregated across instances (drought events)
+    # # df_dday <- df_dday %>% group_by( site, inbin ) %>%
+    # #   summarise_at( vars(one_of(sdovars)), funs(median( ., na.rm=TRUE )) ) %>%
+    # #   filter( !is.na(inbin) ) %>%
+    # #   filter( grepl(",0]", inbin) ) %>%
+    # #   setNames( c( "site", "inbin", paste0("d", sdovars) ) ) %>%
+    # #   select(-inbin) %>%
+    # #   right_join(df_dday, by="site") %>%
+    # #   ungroup()
+    #
+    # # Get the median level in the zero-bin for each column and call them d<sRSVI>
+    # norm <- df_dday %>% group_by( site, inbin ) %>%
+    #   summarise_at( vars(one_of(sdovars)), list(~median( ., na.rm=TRUE )) ) %>%
+    #   filter( !is.na(inbin) ) %>%
+    #   filter( grepl(",0]", inbin) ) %>%
+    #   setNames( c( "site", "inbin", paste0("d", sdovars) ) ) %>%
+    #   select(-inbin)
+    #
+    # df_dday <- df_dday %>%
+    #   left_join(norm, by="site") %>%
     #   ungroup()
-    
-    # Get the median level in the zero-bin for each column and call them d<sRSVI>
-    norm <- df_dday %>% group_by( site, inbin ) %>%
-      summarise_at( vars(one_of(sdovars)), list(~median( ., na.rm=TRUE )) ) %>%
-      filter( !is.na(inbin) ) %>% 
-      filter( grepl(",0]", inbin) ) %>% 
-      setNames( c( "site", "inbin", paste0("d", sdovars) ) ) %>% 
-      select(-inbin)
-    
-    df_dday <- df_dday %>% 
-      left_join(norm, by="site") %>% 
-      ungroup()
-    
-    ## Divide by median in zero-bin
-    get_dsdovar <- function(df, sdovar){
-      dsdovar <- paste0("d", sdovar)
-      df[[dsdovar]] <- df[[sdovar]] / df[[dsdovar]]
-      return(select(df, dsdovar))
-    }
-    df_dday <- purrr::map_dfc(as.list(sdovars), ~get_dsdovar(df_dday, .)) %>% 
-      bind_cols( select(df_dday, -one_of(dsdovars)), .)
-    
+    #
+    # ## Divide by median in zero-bin
+    # get_dsdovar <- function(df, sdovar){
+    #   dsdovar <- paste0("d", sdovar)
+    #   df[[dsdovar]] <- df[[sdovar]] / df[[dsdovar]]
+    #   return(select(df, dsdovar))
+    # }
+    # df_dday <- purrr::map_dfc(as.list(sdovars), ~get_dsdovar(df_dday, .)) %>%
+    #   bind_cols( select(df_dday, -one_of(dsdovars)), .)
+
     ##--------------------------------------------------------
     ## Aggregate accross events, by site
     ##--------------------------------------------------------
-    df_dday_agg_inst <- df_dday %>%  
-      group_by( site, dday ) %>% 
-      summarise_at( 
-        vars(one_of("flue", dovars, sdovars, dsdovars)), 
+    df_dday_agg_inst <- df_dday %>%
+      group_by( site, dday ) %>%
+      summarise_at(
+        # vars(one_of("flue", dovars, sdovars, dsdovars)),
+        vars(one_of(dovars)),
         list(~median( ., na.rm=TRUE), ~q33( ., na.rm=TRUE), ~q66( ., na.rm=TRUE) ) )
-    
+
     ##--------------------------------------------------------
     ## Aggregate accross events and sites
     ##--------------------------------------------------------
-    df_dday_agg_inst_site <- df_dday %>%  
-      group_by( dday ) %>% 
-      summarise_at( 
-        vars(one_of("flue", dovars, sdovars, dsdovars)), 
+    df_dday_agg_inst_site <- df_dday %>%
+      group_by( dday ) %>%
+      summarise_at(
+        # vars(one_of("flue", dovars, sdovars, dsdovars)),
+        vars(one_of(dovars)),
         list(~median( ., na.rm=TRUE), ~q33( ., na.rm=TRUE), ~q66( ., na.rm=TRUE) ) )
 
   } else {
@@ -126,9 +128,9 @@ align_events <- function( df, df_isevent, dovars, leng_threshold, before, after,
 
   }
 
-  out <- list( 
-    df_dday = df_dday, 
-    df_dday_agg_inst = df_dday_agg_inst, 
+  out <- list(
+    df_dday = df_dday,
+    df_dday_agg_inst = df_dday_agg_inst,
     df_dday_agg_inst_site = df_dday_agg_inst_site,
     bins = bins,
     norm = norm
@@ -140,24 +142,24 @@ align_events <- function( df, df_isevent, dovars, leng_threshold, before, after,
 
 get_consecutive <- function( dry, leng_threshold=5, anom=NULL, do_merge=FALSE ){
   ##------------------------------------
-  ## Returns a dataframe that contains information about events (starting index and length) 
+  ## Returns a dataframe that contains information about events (starting index and length)
   ## of consecutive conditions (TRUE) in a boolean vector ('dry' - naming is a legacy).
   ##------------------------------------
 
   ## replace NAs with FALSE (no drought). This is needed because of NAs at head or tail
   dry[ which(is.na(dry)) ] <- FALSE
 
-  ## identifies periods where 'dry' true for consecutive days of length>leng_threshold and 
+  ## identifies periods where 'dry' true for consecutive days of length>leng_threshold and
   ## creates data frame holding each instance's info: start of drought by index in 'dry' and length (number of days thereafter)
   instances <- data.frame( idx_start=c(), len=c() )
   consecutive_dry <- rep( NA, length( dry ) )
   ndry  <- 0
   ninst <- 0
   for ( idx in 1:length( dry ) ){
-    if (dry[idx]){ 
-      ndry <- ndry + 1 
+    if (dry[idx]){
+      ndry <- ndry + 1
     } else {
-      if (ndry>=leng_threshold) { 
+      if (ndry>=leng_threshold) {
         ## create instance
         ninst <- ninst + 1
         addrow <- data.frame( idx_start=idx-(ndry), len=ndry )
@@ -189,7 +191,7 @@ get_consecutive <- function( dry, leng_threshold=5, anom=NULL, do_merge=FALSE ){
     ## if in-between non-drought period is shorter than both of the drought periods
     ## before and after non-drought period
     if (do_merge){
-      
+
       print("dimensions of instances before merging short periods")
       print(dim(instances))
 
@@ -207,7 +209,7 @@ get_consecutive <- function( dry, leng_threshold=5, anom=NULL, do_merge=FALSE ){
           idx <- idx + 1
 
           len_betweendrought <- instances$idx_start[idx+1] - (instances$idx_start[idx] + instances$len[idx] + 1)
-          
+
           if (len_betweendrought<instances$len[idx] && len_betweendrought<instances$len[idx+1]){
             addrow <- data.frame( idx_start=instances$idx_start[idx], len=(instances$idx_start[idx+1] + instances$len[idx+1]) - instances$idx_start[idx] )
             instances_merged <- rbind( instances_merged, addrow )
@@ -220,7 +222,7 @@ get_consecutive <- function( dry, leng_threshold=5, anom=NULL, do_merge=FALSE ){
           }
         }
 
-        instances <- instances_merged    
+        instances <- instances_merged
 
         ninst <- nrow( instances )
 
@@ -246,5 +248,5 @@ q66 <- function( vec, ... ){
 }
 
 
-  
+
 
