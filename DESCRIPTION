@@ -17,9 +17,10 @@ RoxygenNote: 7.2.3
 Depends:
     R (>= 4.2)
 Imports:
-  tidymodels
-  xgboost
-  ranger
-  caret
-  knitr
-  rmarkdown
+    tidymodels,
+    xgboost,
+    ranger,
+    caret
+Suggests:
+    knitr
+    rmarkdown
