@@ -11,5 +11,121 @@ vignette: >
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+library(tidymodels)
+library(xgboost)
+library(ranger)
+library(caret)
+
+# set seed for consistency
+set.seed(0)
 ```
 
+## Classification model
+
+```{r echo = FALSE}
+# read in training data
+ml_df <- readRDS(
+  here::here("data/machine_learning_training_data.rds")
+  ) |>
+  dplyr::select(
+    -date,
+    -year,
+    -doy,
+    -cluster,
+    -site
+  ) |>
+  mutate(
+    is_flue_drought = as.factor(is_flue_drought)
+  ) |>
+  na.omit()
+
+# create a data split across
+# across both droughted and non-droughted days
+ml_df_split <- ml_df |>
+  rsample::initial_split(
+    strata = is_flue_drought,
+    prop = 0.8
+  )
+
+# select training and testing
+# data based on this split
+train <- rsample::training(ml_df_split) |>
+  select(-flue)
+test <- rsample::testing(ml_df_split) |>
+  select(-flue)
+```
+
+```{r}
+# read in precompiled model
+classification_model <- readRDS(
+  here::here("data/classification_model.rds")
+  )
+
+# run the model on our test data
+# using predict()
+test_results <- predict(
+  classification_model,
+  test)
+
+# use caret's confusionMatrix function to get
+# a full overview of metrics
+caret::confusionMatrix(
+  reference = as.factor(test$is_flue_drought),
+  data = as.factor(test_results$.pred_class)
+)
+
+```
+
+## Regression model
+
+```{r echo = FALSE}
+# read in training data
+ml_df <- readRDS(
+  here::here("data/machine_learning_training_data.rds")
+  ) |>
+  dplyr::select(
+    -date,
+    -year,
+    -doy,
+    -cluster,
+    -site
+  ) |>
+  na.omit()
+
+# create a data split across
+# across both droughted and non-droughted days
+ml_df_split <- ml_df |>
+  rsample::initial_split(
+    strata = is_flue_drought,
+    prop = 0.8
+  )
+
+# select training and testing
+# data based on this split
+train <- rsample::training(ml_df_split) |>
+  select(-is_flue_drought)
+test <- rsample::testing(ml_df_split) |>
+  select(-is_flue_drought)
+```
+
+```{r}
+# read in precompiled model
+regression_model <- readRDS(
+  here::here("data/regression_model.rds")
+  )
+
+# run the model on our test data
+# using predict()
+test_results <- predict(
+  regression_model,
+  test)
+
+plot(
+  test$flue,
+  test_results$.pred,
+  xlab = "Observed fLUE",
+  ylab = "Predicted fLUE"
+)
+
+```
