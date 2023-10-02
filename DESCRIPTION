@@ -22,5 +22,5 @@ Imports:
     ranger,
     caret
 Suggests:
-    knitr
+    knitr,
     rmarkdown
