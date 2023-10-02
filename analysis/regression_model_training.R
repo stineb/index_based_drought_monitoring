@@ -2,7 +2,6 @@
 # hyperparameter tuning
 
 # load the ecosystem
-suppressPackageStartupMessages()
 library(tidymodels)
 library(ranger)
 library(dplyr)
@@ -24,7 +23,7 @@ ml_df <- readRDS(
   na.omit()
 
 # create a data split across
-# land cover classes
+# across both droughted and non-droughted days
 ml_df_split <- ml_df |>
   rsample::initial_split(
     strata = is_flue_drought,
@@ -61,7 +60,10 @@ hp_settings <- dials::grid_latin_hypercube(
 )
 
 # cross-validation settings
-folds <- rsample::vfold_cv(train, v = 3)
+folds <- rsample::vfold_cv(
+  train,
+  v = 3
+  )
 
 # optimize the model (hyper) parameters
 # using the:
@@ -94,8 +96,5 @@ best_wflow <- tune::finalize_workflow(
 
 # run (consolidate) fit on best hyperparameters
 best_model <- fit(best_wflow, train)
+saveRDS(best_model, "data/regression_model.rds", compress = "xz")
 
-#---- model validation ----
-
-test_results <- predict(best_model, test)
-plot(test$flue, test_results$.pred)
