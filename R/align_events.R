@@ -1,6 +1,6 @@
 #' Aligns data by events
 #'
-#' Uses a vectory specifying whether data falls into an event to reshape data, aligning by the onset of the event
+#' Uses a vector specifying whether data falls into an event to reshape data, aligning by the onset of the event
 #'
 #' @param df A data frame containing all data continuously along time, required column named \code{site, date}.
 #' @param df_isevent A data frame \code{nrow(df_isevent)==nrow(df)} specifying whether respective dates
@@ -58,49 +58,6 @@ align_events <- function( df, df_isevent, dovars, leng_threshold, before, after,
       addrows <- df %>% slice( idxs ) %>% mutate( dday=dday, inst=iinst )
       df_dday <- df_dday %>% bind_rows( addrows )
     }
-
-    # ##--------------------------------------------------------
-    # ## Normalise re-arranged data relative to a certain bin's median for each site
-    # ##--------------------------------------------------------
-    # ## add column for bin
-    # df_dday <- df_dday %>% mutate( inbin  = cut( as.numeric(dday), breaks = bins ) )
-    #
-    # ## Normalise by median value in dday-bin before drought onset ("zero-bin")
-    # ## Get median in zero-bin
-    # sdovars  <- paste0("s",  dovars)
-    # dsdovars <- paste0("ds", dovars)
-    #
-    # # ## Add median in zero-bin (dsdovars), separate for each site, aggregated across instances (drought events)
-    # # df_dday <- df_dday %>% group_by( site, inbin ) %>%
-    # #   summarise_at( vars(one_of(sdovars)), funs(median( ., na.rm=TRUE )) ) %>%
-    # #   filter( !is.na(inbin) ) %>%
-    # #   filter( grepl(",0]", inbin) ) %>%
-    # #   setNames( c( "site", "inbin", paste0("d", sdovars) ) ) %>%
-    # #   select(-inbin) %>%
-    # #   right_join(df_dday, by="site") %>%
-    # #   ungroup()
-    #
-    # # Get the median level in the zero-bin for each column and call them d<sRSVI>
-    # norm <- df_dday %>% group_by( site, inbin ) %>%
-    #   summarise_at( vars(one_of(sdovars)), list(~median( ., na.rm=TRUE )) ) %>%
-    #   filter( !is.na(inbin) ) %>%
-    #   filter( grepl(",0]", inbin) ) %>%
-    #   setNames( c( "site", "inbin", paste0("d", sdovars) ) ) %>%
-    #   select(-inbin)
-    #
-    # df_dday <- df_dday %>%
-    #   left_join(norm, by="site") %>%
-    #   ungroup()
-    #
-    # ## Divide by median in zero-bin
-    # get_dsdovar <- function(df, sdovar){
-    #   dsdovar <- paste0("d", sdovar)
-    #   df[[dsdovar]] <- df[[sdovar]] / df[[dsdovar]]
-    #   return(select(df, dsdovar))
-    # }
-    # df_dday <- purrr::map_dfc(as.list(sdovars), ~get_dsdovar(df_dday, .)) %>%
-    #   bind_cols( select(df_dday, -one_of(dsdovars)), .)
-
     ##--------------------------------------------------------
     ## Aggregate accross events, by site
     ##--------------------------------------------------------

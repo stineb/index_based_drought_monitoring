@@ -1,8 +1,7 @@
 library(readr)
 library(ggplot2)
 library(dplyr)
-
-# source(paste0(here::here(), "/R/align_events.R"))
+source("R/align_events.R")
 
 # use flue data for demo
 flue <- readr::read_csv("data/flue_stocker18nphyt.csv") |>
@@ -21,8 +20,10 @@ df_idx_events <- get_consecutive(
   leng_threshold = 5,
   do_merge = FALSE
   ) %>%
-  mutate(date_start = flue$date[.$idx_start],
-         date_end = flue$date[.$idx_start + .$len - 1])
+  mutate(
+    date_start = flue$date[.$idx_start],
+    date_end = flue$date[.$idx_start + .$len - 1]
+    )
 
 # plot flue and events
 ggplot() +
@@ -46,7 +47,9 @@ ggplot() +
 # align data by event (function get_consecutive is called again inside align_events() - not nice)
 flue_aligned <- align_events(
   df = flue |>
-    rename(isevent = is_flue_drought),
+    rename(
+      isevent = is_flue_drought
+      ),
   df_isevent = NA,
   dovars = "flue",
   leng_threshold = 5, # require at least five consecutive days to create an 'event'
@@ -56,12 +59,13 @@ flue_aligned <- align_events(
 )
 
 # plot flue data aligned by event (dday is the day into the event, inst is the event number)
-ggplot(
+p <- ggplot(
   data = flue_aligned$df_dday,
   aes(x = dday, y = flue, group = inst, color = isevent)
-  ) +
+) +
   geom_line() +
   theme_classic() +
-  scale_color_manual(values = c("grey80", "tomato"))
+  scale_color_manual(values = c("grey80", "tomato")
+  )
 
-
+print(p)
