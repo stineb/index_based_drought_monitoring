@@ -88,7 +88,7 @@ results <- tune::tune_grid(
 # select the best model
 best <- tune::select_best(
   results,
-  metric = "rmse"
+  metric = "roc_auc"
 )
 
 # cook up a model using finalize_workflow
@@ -100,6 +100,22 @@ best_wflow <- tune::finalize_workflow(
 
 # run (consolidate) fit on best hyperparameters
 best_model <- fit(best_wflow, train)
-print(best_model)
+
+# run the model on our test data
+# using predict()
+test_results <- predict(best_model, test)
+
+# load the caret library to
+# access confusionMatrix functionality
+library(caret)
+
+# use caret's confusionMatrix function to get
+# a full overview of metrics
+caret::confusionMatrix(
+  reference = as.factor(test$is_flue_drought),
+  data = as.factor(test_results$.pred_class)
+)
+
+# save best model
 saveRDS(best_model, "data/classification_model.rds", compress = "xz")
 
