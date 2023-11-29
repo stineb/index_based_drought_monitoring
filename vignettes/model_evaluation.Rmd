@@ -16,14 +16,16 @@ library(tidymodels)
 library(xgboost)
 library(ranger)
 library(caret)
-
-# set seed for consistency
-set.seed(0)
 ```
 
 ## Classification model
 
-```{r echo = FALSE}
+Read in data (splitting out the test data), using random seed 0 (as per training).
+
+```{r echo = TRUE}
+# set seed for consistency
+set.seed(0)
+
 # read in training data
 ml_df <- readRDS(
   here::here("data/machine_learning_training_data.rds")
