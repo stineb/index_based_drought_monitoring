@@ -110,7 +110,7 @@ tasks <- lapply(
 # don't download, just return
 # the task ID / request calls
 requests <- rs_request_batch(
-    request = tasks[265:280],
+    request = tasks,
     user = "khufkens",
     workers = 10,
     path = "data-raw/modis_data/"

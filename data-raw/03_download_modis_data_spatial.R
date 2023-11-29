@@ -12,7 +12,7 @@ country <- ne_countries(
   returnclass = "sf"
   ) |>
   dplyr::filter(
-    sovereignt ==  "Switzerland"
+    sovereignt %in%  c("Switzerland","Germany","Austria")
   ) |>
   sf::st_geometry()
 
@@ -68,10 +68,9 @@ full_queries <- lapply(
       data.frame(
         subtask = product,
         task = .$task,
-        latitude = .$latitude,
-        longitude = .$longitude,
-        start = .$start,
-        end = .$end,
+        roi = country,
+        start = "2018-05-01",
+        end = "2018-11-01",
         product = product,
         layer = as.character(bands)
       )
@@ -92,7 +91,7 @@ tasks <- lapply(
 # don't download, just return
 # the task ID / request calls
 requests <- rs_request_batch(
-    request = tasks[265:280],
+    request = tasks,
     user = "khufkens",
     workers = 10,
     path = "data-raw/modis_data_spatial/"
