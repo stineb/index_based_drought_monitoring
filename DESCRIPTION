@@ -20,7 +20,9 @@ Imports:
     tidymodels,
     xgboost,
     ranger,
-    caret
+    caret,
+    terra,
+    rnaturalearth
 Suggests:
     knitr,
     rmarkdown,
