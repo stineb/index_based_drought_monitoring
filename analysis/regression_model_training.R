@@ -23,7 +23,7 @@ ml_df <- readRDS(
   na.omit()
 
 # create a data split across
-# across both droughted and non-droughted days
+# across both drought and non-drought days
 ml_df_split <- ml_df |>
   rsample::initial_split(
     strata = is_flue_drought,
