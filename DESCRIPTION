@@ -23,4 +23,5 @@ Imports:
     caret
 Suggests:
     knitr,
-    rmarkdown
+    rmarkdown,
+    here
