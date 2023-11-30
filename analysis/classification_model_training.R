@@ -23,7 +23,12 @@ ml_df <- readRDS(
   mutate(
     is_flue_drought = as.factor(is_flue_drought)
   ) |>
-  na.omit()
+  na.omit() |>
+  select(
+    flue,
+    is_flue_drought,
+    starts_with("Nadir")
+  )
 
 # create a data split across
 # across both droughted and non-droughted days

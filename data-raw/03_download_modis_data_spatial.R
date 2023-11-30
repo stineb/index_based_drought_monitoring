@@ -14,14 +14,15 @@ country <- ne_countries(
   dplyr::filter(
     sovereignt %in%  c("Switzerland","Germany","Austria")
   ) |>
-  sf::st_geometry()
+  sf::st_union() |>
+  sf::st_as_sf()
 
 # list products to download
 product_subset <- c(
   "MOD09GA.061",
-  "MODOCGA.006",
-  "MOD11A1.006",
-  "MCD43A4.061"
+  #"MODOCGA.061",
+  "MOD11A1.061",
+  #"MCD43A4.061"
   )
 
 # list appeears meta-data and subset
@@ -44,7 +45,7 @@ full_queries <- lapply(
       IsQA == FALSE
     )
 
-  if(product != "MOD11A1.006" ) {
+  if(product != "MOD11A1.061" ) {
     bands <- bands |>
       filter(
         grepl("refl", Layer, ignore.case = TRUE)
@@ -59,20 +60,18 @@ full_queries <- lapply(
   bands <- bands |>
     select(
       Layer
-    ) |>
-    unlist()
+    )
 
-  base_query <- base_query |>
+  base_query <- bands |>
     rowwise() |>
     do({
       data.frame(
         subtask = product,
-        task = .$task,
-        roi = country,
+        task = "spatial",
         start = "2018-05-01",
         end = "2018-11-01",
         product = product,
-        layer = as.character(bands)
+        layer = as.character(.$Layer)
       )
     })
 })
@@ -84,7 +83,10 @@ tasks <- full_queries |>
 
 tasks <- lapply(
   tasks, function(task){
-    appeears::rs_build_task(task)
+    appeears::rs_build_task(
+      task,
+      roi = country
+    )
 })
 
 # request the task to be executed
@@ -107,7 +109,7 @@ downloaded_files <- list.files(
   recursive = TRUE
   )
 
-files_to_remove <- downloaded_files[!grepl("results", downloaded_files)]
-
-# remove files
-file.remove(files_to_remove)
+# files_to_remove <- downloaded_files[!grepl("results", downloaded_files)]
+#
+# # remove files
+# file.remove(files_to_remove)
