@@ -39,13 +39,19 @@ site_data <- lapply(files, function(file) {
     df <- read_appeears(
       file,
       name = "LST_Daykm"
+    ) |>
+    rename(
+        "LST_terra" = "LST_Daykm"
     )
   }
 
-  if(product == "MODOCGA"){
+  if(product == "MYD11A1"){
     df <- read_appeears(
       file,
-      name = "sur_refl_"
+      name = "LST_Daykm"
+    ) |>
+    rename(
+      "LST_aqua" = "LST_Daykm"
     )
   }
 
