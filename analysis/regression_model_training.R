@@ -45,12 +45,14 @@ test <- rsample::testing(ml_df_split) |>
 #---- model definition and tuning ----
 
 # setup model
-model <- parsnip::rand_forest(
+model <- parsnip::boost_tree(
   trees = 50,
   min_n = tune()
   ) |>
-  parsnip::set_engine("ranger") |>
-  parsnip::set_mode("regression")
+  #parsnip::set_engine("ranger") |>
+  #parsnip::set_mode("regression")
+  set_engine("xgboost") |>
+  set_mode("regression")
 
 # create workflow
 wflow <-
