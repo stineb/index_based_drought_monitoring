@@ -20,9 +20,9 @@ country <- ne_countries(
 # list products to download
 product_subset <- c(
   "MOD09GA.061",
-  #"MODOCGA.061",
   "MOD11A1.061",
-  #"MCD43A4.061"
+  "MYD11A1.061",
+  "MCD43A4.061"
   )
 
 # list appeears meta-data and subset

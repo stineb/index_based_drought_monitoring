@@ -37,8 +37,8 @@ base_query <- site_info |>
 # list products to download
 product_subset <- c(
   "MOD09GA.061",
-  "MODOCGA.006",
-  "MOD11A1.006",
+  "MOD11A1.061",
+  "MYD11A1.061",
   "MCD43A4.061"
   )
 
@@ -62,7 +62,7 @@ full_queries <- lapply(
       IsQA == FALSE
     )
 
-  if(product != "MOD11A1.006" ) {
+  if(product != "MOD11A1.061" || product != "MYD11A1.061") {
     bands <- bands |>
       filter(
         grepl("refl", Layer, ignore.case = TRUE)
