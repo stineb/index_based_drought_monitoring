@@ -5,6 +5,7 @@
 # Session Data files
 .RData
 data-raw/modis_data
+data-raw/modis_data_spatial
 
 # User-specific files
 .Ruserdata
