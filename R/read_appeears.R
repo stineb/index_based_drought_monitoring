@@ -54,8 +54,8 @@ read_appeears <- function(
   #---- post-processing ----
   products <- c(
     "MOD09GA.061",
-    "MODOCGA.006",
-    "MOD11A1.006",
+    "MOD11A1.061",
+    "MYD11A1.061",
     "MCD43A4.061"
   )
 
@@ -63,9 +63,7 @@ read_appeears <- function(
   # select data - too idiosyncratic for
   # fully automated processing will be
   # based on a product-by-product workflow
-  if (df$product[1] %in% products) {
-
-    if (df$product[1] == products[1]) {
+  if (grepl("MOD09GA", df$product[1])) {
       message("processing MOD09GA")
 
       # only retain true QA/QC data
@@ -98,40 +96,39 @@ read_appeears <- function(
         )
     }
 
-    if (df$product[1] == products[2]) {
-      message("processing MODOCGA")
+    # if (df$product[1] == products[2]) {
+    #   message("processing MODOCGA")
+    #
+    #   # convert bands to numbers for
+    #   # filtering
+    #   df <- df |>
+    #     rowwise() |>
+    #     mutate(
+    #       band_nr =
+    #         as.numeric(gsub("b","",nth(unlist(stringr::str_split(band, "_")),5))),
+    #       bitmask_band_nr =
+    #         as.numeric(nth(unlist(stringr::str_split(bitmask_band, "_")),10))
+    #     ) |>
+    #     filter(
+    #       band_nr == bitmask_band_nr
+    #     ) |>
+    #     select(
+    #       -bitmask_band_nr
+    #     ) |>
+    #     ungroup()
+    #
+    #   df <- df |>
+    #     mutate(
+    #       value = ifelse(bitmask == "highest quality", value, NA)
+    #     )
+    # }
 
-      # convert bands to numbers for
-      # filtering
-      df <- df |>
-        rowwise() |>
-        mutate(
-          band_nr =
-            as.numeric(gsub("b","",nth(unlist(stringr::str_split(band, "_")),5))),
-          bitmask_band_nr =
-            as.numeric(nth(unlist(stringr::str_split(bitmask_band, "_")),10))
-        ) |>
-        filter(
-          band_nr == bitmask_band_nr
-        ) |>
-        select(
-          -bitmask_band_nr
-        ) |>
-        ungroup()
-
-      df <- df |>
-        mutate(
-          value = ifelse(bitmask == "highest quality", value, NA)
-        )
-    }
-
-    if (df$product[1] == products[3]) {
-      message("processing MOD11A1")
+    if (grepl("11A1",df$product[1])) {
+      message("processing MOD11A1 or MYD11A1")
 
       # only retain true QA/QC data
       df <- df |>
         filter(
-          #grepl("LST_Error", bitmask_band),
           grepl("MODLAND", bitmask_band)
         )
 
@@ -150,7 +147,7 @@ read_appeears <- function(
         )
     }
 
-    if (df$product[1] == products[4]) {
+    if (grepl("MCD43A4", df$product[1])) {
       message("processing MCD43A4")
 
       # only retain true QA/QC data
@@ -186,7 +183,6 @@ read_appeears <- function(
                  bitmask),
             value, NA)
         )
-    }
   }
 
   return(df)
