@@ -69,11 +69,13 @@ lapply(doys, function(doy){
     geom_spatraster(
       data = p
     ) +
-    scale_fill_viridis_c() +
+    scale_fill_viridis_c(
+      limits = c(0, 1.5)
+    ) +
     geom_sf(data = country, colour = "white", fill = NA) +
     labs(
       title = doy
     )
 
-  ggsave(filename = sprintf("manuscript/%s.png", as.character(doy)), p, width = 5, height = 5)
+  ggsave(filename = sprintf("manuscript/regression/%s.png", as.character(doy)), p, width = 5, height = 5)
 })
