@@ -36,10 +36,10 @@ base_query <- site_info |>
 
 # list products to download
 product_subset <- c(
-  "MOD09GA.061",
+  #"MOD09GA.061",
   "MOD11A1.061",
-  "MYD11A1.061",
-  "MCD43A4.061"
+  "MYD11A1.061"
+  #"MCD43A4.061"
   )
 
 # list appeears meta-data and subset
@@ -62,7 +62,7 @@ full_queries <- lapply(
       IsQA == FALSE
     )
 
-  if(product != "MOD11A1.061" || product != "MYD11A1.061") {
+  if(!grepl("11A1", product)) {
     bands <- bands |>
       filter(
         grepl("refl", Layer, ignore.case = TRUE)
@@ -126,8 +126,11 @@ downloaded_files <- list.files(
   recursive = TRUE
   )
 
+# remove spurious files (README etc)
 files_to_remove <- downloaded_files[!grepl("results", downloaded_files)]
+file.remove(files_to_remove)
 
-# remove files
+# remove old release (006) data
+files_to_remove <- downloaded_files[grepl("006", downloaded_files)]
 file.remove(files_to_remove)
 

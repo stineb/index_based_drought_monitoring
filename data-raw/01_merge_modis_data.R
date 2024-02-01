@@ -23,10 +23,9 @@ site_data <- lapply(files, function(file) {
     collapse = "-"
   )
 
-  message(sprintf("---- Processing site: %s", site))
-
   # split out product name
   product <- stringr::str_split(basename(file), "-")[[1]][3]
+  message(sprintf("---- Processing site %s and product %s", site, product))
 
   if(product == "MCD43A4"){
     df <- read_appeears(
@@ -35,23 +34,10 @@ site_data <- lapply(files, function(file) {
     )
   }
 
-  if(product == "MOD11A1"){
+  if (grepl("11A1", product)) {
     df <- read_appeears(
       file,
-      name = "LST_Daykm"
-    ) |>
-    rename(
-        "LST_terra" = "LST_Daykm"
-    )
-  }
-
-  if(product == "MYD11A1"){
-    df <- read_appeears(
-      file,
-      name = "LST_Daykm"
-    ) |>
-    rename(
-      "LST_aqua" = "LST_Daykm"
+      name = "LST_Day_1km"
     )
   }
 
