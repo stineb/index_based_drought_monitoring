@@ -2,7 +2,14 @@
 #' Merge / calculate difference ratios
 #'
 #' Calculate normalized difference ratios
-#' for all possible "sur_refl" band combinations
+#' for all possible "sur_refl" band combinations.
+#'
+#' This is a naive approach and a more tailored / specific methodology
+#' can use only select normalized difference band combinations by specifying
+#' which columns to consider in the lapply() routine in this function.
+#'
+#' Additional improvements can probably be made by using {purrr} in some
+#' exotic combination.
 #'
 #' @param ml_df a machine learning data frame with "sur_refl" prefix column
 #'  names apply the band ratios to
@@ -52,6 +59,11 @@ merge_normalized_differences <- function(ml_df){
 
   # merge with original data
   ml_df <- bind_cols(ml_df, ndr)
+
+  # convert logical to factor (classes git changed during
+  # processing)
+  ml_df <- ml_df |>
+    mutate_if(is.logical, as.factor)
 }
 
 

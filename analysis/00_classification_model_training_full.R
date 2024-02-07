@@ -13,6 +13,8 @@ library(tidymodels)
 library(ranger)
 library(dplyr)
 source("R/read_ml_data.R")
+source("R/normalized_difference.R")
+source("R/merge_normalized_differences.R")
 set.seed(0)
 
 #---- data partitioning ----
@@ -22,6 +24,10 @@ ml_df <- read_ml_data(
   here::here("data/machine_learning_training_data.rds"),
   spatial = FALSE
 )
+
+# add normalized difference ratios for surf_refl
+# columns
+ml_df <- merge_normalized_differences(ml_df)
 
 # create a data split across
 # across both droughted and non-droughted days

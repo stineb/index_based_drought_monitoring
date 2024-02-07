@@ -16,6 +16,10 @@ ml_df <- read_ml_data(
   spatial = FALSE
   )
 
+# add normalized difference ratios for surf_refl
+# columns
+ml_df <- merge_normalized_differences(ml_df)
+
 # create a data split across
 # across both drought and non-drought days
 ml_df_split <- ml_df |>
