@@ -3,8 +3,9 @@
 
 # load the ecosystem
 library(tidymodels)
-library(ranger)
 library(dplyr)
+library(caret)
+
 source("R/read_ml_data.R")
 set.seed(0)
 
@@ -38,8 +39,6 @@ model <- parsnip::boost_tree(
   trees = 50,
   min_n = tune()
   ) |>
-  #parsnip::set_engine("ranger") |>
-  #parsnip::set_mode("regression")
   set_engine("xgboost") |>
   set_mode("regression")
 
@@ -92,6 +91,14 @@ best_wflow <- tune::finalize_workflow(
 
 # run (consolidate) fit on best hyperparameters
 best_model <- fit(best_wflow, train)
+
+# run the model on our test data
+# using predict()
+test_results <- predict(best_model, test)
+test_results <- bind_cols(flue = test$flue, test_results)
+test_results |>
+  metrics(truth = flue, estimate = .pred) |>
+  print()
 
 # save best model
 saveRDS(

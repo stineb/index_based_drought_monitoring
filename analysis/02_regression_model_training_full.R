@@ -18,7 +18,7 @@ ml_df <- read_ml_data(
 
 # add normalized difference ratios for surf_refl
 # columns
-ml_df <- merge_normalized_differences(ml_df)
+#ml_df <- merge_normalized_differences(ml_df)
 
 # create a data split across
 # across both drought and non-drought days
@@ -96,6 +96,14 @@ best_wflow <- tune::finalize_workflow(
 
 # run (consolidate) fit on best hyperparameters
 best_model <- fit(best_wflow, train)
+
+# run the model on our test data
+# using predict()
+test_results <- predict(best_model, test)
+test_results <- bind_cols(flue = test$flue, test_results)
+test_results |>
+  metrics(truth = flue, estimate = .pred) |>
+  print()
 
 # save best model
 saveRDS(

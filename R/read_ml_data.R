@@ -31,9 +31,13 @@ read_ml_data <- function(
       dplyr::select(
         flue,
         is_flue_drought,
-        starts_with("Nadir")
+        starts_with("Nadir"),
+        starts_with("LST")
       )
   }
+
+  # convert factor
+  ml_df$is_flue_drought <- as.factor(ml_df$is_flue_drought)
 
   return(ml_df)
 }
