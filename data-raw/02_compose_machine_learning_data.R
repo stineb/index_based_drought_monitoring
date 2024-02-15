@@ -25,16 +25,6 @@ site_data_wide <- site_data |>
     values_from = value
   )
 
-# calculate vegetation indices
-site_data_wide <- site_data_wide |>
-  mutate(
-    ndvi = (sur_refl_b02 - sur_refl_b01)/(sur_refl_b02  + sur_refl_b01),
-    evi = 2.5 * (sur_refl_b02  - sur_refl_b01 ) / (sur_refl_b02  + 6 * sur_refl_b01  - 7.5 * sur_refl_b03 + 1),
-    NIRv = ndvi * (sur_refl_b02),
-    cci = (sur_refl_b11  - sur_refl_b01 )/(sur_refl_b11  + sur_refl_b01 ),
-    pri = (sur_refl_b11  - sur_refl_b12 )/(sur_refl_b11  + sur_refl_b12 )
-  )
-
 # merge with flue
 site_data_wide <- left_join(
   flue,
