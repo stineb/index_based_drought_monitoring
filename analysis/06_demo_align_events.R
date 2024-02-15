@@ -2,37 +2,17 @@ library(readr)
 library(ggplot2)
 library(dplyr)
 library(tidyr)
+source("R/calc_VI.R")
 
-
+# read the data
 df <- readRDS(here::here("data/machine_learning_training_data.rds"))
-#
-# df <- df |>
-#   dplyr::mutate(
-#     N = Nadir_Reflectance_Band2,
-#     S1 = Nadir_Reflectance_Band6,
-#     S2 = Nadir_Reflectance_Band7,
-#     swir_diff = S1 - S2,
-#     NBR = (S1-S2)/(S1+S2),
-#     NMDI = (N-(S1-S2))/(N+(S1-S2)), # normalized multiband drought index
-#     GVMI = ((N+0.1)-(S2+0.02))/((N+0.1)+(S2+0.02)) # global vegetation moisture index
-#   ) |>
-#   dplyr::select(
-#     is_flue_drought,
-#     flue,
-#     GVMI,
-#     NMDI,
-#     evi,
-#     site
-#   )
+vi <- calc_VI(df)
+df <- bind_cols(df, vi)
 
+# stray NA in the labelling?
 df$is_flue_drought[is.na(df$is_flue_drought)] <- FALSE
-df <- df |>
-  select(
-    site,
-    is_flue_drought
-  )
 
-bla <- df |>
+df <- df |>
   group_by(site) |>
   do({
 
@@ -50,10 +30,13 @@ bla <- df |>
     # set start posiiton as 1
     # else not
     if(x$is_flue_drought[1]){
-      start <- c(1, which(breaks == 1))
+      start <- c(1, which(breaks == 1) - 20)
     } else {
-      start <- which(breaks == 1)
+      start <- which(breaks == 1) - 20
     }
+
+    # bottom out
+    start[start < 1] <- 1
 
     # which breaks transition from TRUE
     # to FALSE and truncate on start
@@ -67,12 +50,14 @@ bla <- df |>
     # and exclude chunks which are shorter
     # than 7 values (days)
     locs <- cbind(start, end, end - start)
-    locs <- locs[locs[,3] > 7,1:2]
-    print(locs)
+    locs <- locs[locs[,3] > 27,1:2]
 
-    if (nrow(locs) > 0){
-      for (i in 1:nrow(locs)){
-        x$idx[locs[i,1]:locs[i,2]] <- i
+    # trap instances when locs is null or 0
+    if (!is.null(nrow(locs))){
+      if(nrow(locs) > 0){
+        for (i in 1:nrow(locs)){
+          x$idx[locs[i,1]:locs[i,2]] <- i
+        }
       }
     }
 
@@ -81,6 +66,106 @@ bla <- df |>
     }
 
     x
-
   })
 
+# only retain cDD / cGR
+df <- df |>
+  filter(
+    !is.na(idx),
+    cluster %in% c("cDD","cGR")
+  ) |>
+  group_by(site, idx) |>
+  mutate(
+    n = 1:n()
+  ) |>
+  filter(
+    n < 100
+  ) |>
+  ungroup()
+
+VI <- "NDVI"
+
+# summary stats across
+# clusters and time steps
+df2 <- df |>
+  select(
+    cluster,
+    n,
+    flue,
+    !!VI
+  ) |>
+  group_by(cluster, n) |>
+  summarize(
+    flue_median = median(flue),
+    flue_qt_25 = quantile(flue,0.25),
+    flue_qt_75 = quantile(flue,0.75),
+    flue_qt_10 = quantile(flue,0.10),
+    flue_qt_90 = quantile(flue,0.90),
+
+    # VI
+    VI_median = median(!!sym(VI)),
+    VI_qt_25 = quantile(!!sym(VI), 0.25),
+    VI_qt_75 = quantile(!!sym(VI), 0.75),
+    VI_qt_10 = quantile(!!sym(VI), 0.10),
+    VI_qt_90 = quantile(!!sym(VI), 0.90)
+  ) |>
+  ungroup()
+
+
+#---- figure ----
+
+p <- ggplot(df2) +
+  geom_ribbon(
+    aes(
+    x = n - 20,
+    ymin = flue_qt_25,
+    ymax = flue_qt_75
+    ),
+    fill = "lightblue",
+    alpha = 0.2
+  ) +
+  geom_ribbon(
+    aes(
+      x = n - 20,
+      ymin = flue_qt_10,
+      ymax = flue_qt_90
+    ),
+    fill = "lightblue",
+    alpha = 0.2
+  ) +
+  geom_line(
+    aes(
+      n - 20,
+      flue_median
+    ),
+    colour = "blue"
+  ) +
+  geom_ribbon(
+    aes(
+      x = n - 20,
+      ymin = VI_qt_25,
+      ymax = VI_qt_75
+    ),
+    fill = "lightgreen",
+    alpha = 0.2
+  ) +
+  geom_ribbon(
+    aes(
+      x = n - 20,
+      ymin = VI_qt_10,
+      ymax = VI_qt_90
+    ),
+    fill = "lightgreen",
+    alpha = 0.2
+  ) +
+  geom_line(
+    aes(
+      n - 20,
+      VI_median
+    ),
+    colour = "darkgreen"
+  ) +
+  theme_minimal() +
+  facet_wrap(cluster~.)
+
+print(p)
