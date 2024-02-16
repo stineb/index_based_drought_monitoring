@@ -21,14 +21,14 @@ read_ml_data <- function(
       -date,
       -year,
       -doy,
-      -cluster,
-      -site
+      -cluster
     ) |>
     na.omit()
 
   if (spatial) {
     ml_df <- ml_df |>
       dplyr::select(
+        site,
         flue,
         is_flue_drought,
         starts_with("Nadir"),
