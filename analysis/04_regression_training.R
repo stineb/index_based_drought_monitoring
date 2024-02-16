@@ -57,7 +57,7 @@ hp_settings <- dials::grid_latin_hypercube(
 # cross-validation settings
 folds <- rsample::vfold_cv(
   train,
-  v = 3
+  v = 10
   )
 
 # optimize the model (hyper) parameters
@@ -96,9 +96,10 @@ best_model <- fit(best_wflow, train)
 # using predict()
 test_results <- predict(best_model, test)
 test_results <- bind_cols(flue = test$flue, test_results)
-test_results |>
-  metrics(truth = flue, estimate = .pred) |>
-  print()
+
+# grab test metrics
+tm <- test_results |>
+  metrics(truth = flue, estimate = .pred)
 
 # save best model
 saveRDS(

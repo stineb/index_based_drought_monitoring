@@ -1,14 +1,11 @@
-# Trains a model based upon the more limited bands
-# currently available (after update of Appeears to
-# version 6.1 of the MODIS data - dropping some
-# of the products [for now?])
-#
-# Basic xgboost model with limited
-# hyperparameter tuning
+# Trains a model based upon the full
+# dataset with basic hyper-paramater
+# tuning and cross-validation not
+# stratified by site (data leakage
+# in terms of geography if you will)
 
 # load the ecosystem
 library(tidymodels)
-library(ranger)
 library(dplyr)
 source("R/read_ml_data.R")
 set.seed(0)
@@ -19,7 +16,8 @@ set.seed(0)
 ml_df <- read_ml_data(
   here::here("data/machine_learning_training_data.rds"),
   spatial = TRUE
-)
+) |>
+  dplyr::select(-flue, -site)
 
 # create a data split across
 # across both droughted and non-droughted days
@@ -31,10 +29,8 @@ ml_df_split <- ml_df |>
 
 # select training and testing
 # data based on this split
-train <- rsample::training(ml_df_split) |>
-  select(-flue)
-test <- rsample::testing(ml_df_split) |>
-  select(-flue)
+train <- rsample::training(ml_df_split)
+test <- rsample::testing(ml_df_split)
 
 #---- model definition and tuning ----
 
@@ -62,7 +58,7 @@ hp_settings <- dials::grid_latin_hypercube(
 # cross-validation settings
 folds <- rsample::vfold_cv(
   train,
-  v = 3
+  v = 10
   )
 
 # optimize the model (hyper) parameters
@@ -107,10 +103,10 @@ library(caret)
 
 # use caret's confusionMatrix function to get
 # a full overview of metrics
-caret::confusionMatrix(
+cm <- caret::confusionMatrix(
   reference = as.factor(test$is_flue_drought),
   data = as.factor(test_results$.pred_class)
-)
+)$overall
 
 # save best model
 saveRDS(
