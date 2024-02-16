@@ -96,14 +96,22 @@ results <- lapply(unique(ml_df$site)[1:2], function(site){
   # run (consolidate) fit on best hyperparameters
   best_model <- fit(best_wflow, train)
 
+  # grab out of sample test data
+  LSO_test <- ml_df |>
+    filter(
+      site == !!site
+    )
+
   # run the model on our test data
   # using predict()
-  test_results <- predict(best_model, test)
-  test_results <- bind_cols(flue = test$flue, test_results)
-
-  # grab test metrics
-  tm <- test_results |>
-    metrics(truth = flue, estimate = .pred)
+  test_results <- predict(best_model, LSO_test)
+  test_results <- bind_cols(
+    LSO_test,
+    test_results
+    ) |>
+    rename(
+      flue_predicted = .pred
+    )
 
   # create output dir if required
   if(!dir.exists(here::here("/data/LSO"))){
@@ -112,14 +120,31 @@ results <- lapply(unique(ml_df$site)[1:2], function(site){
     dir.create(here::here("data/LSO"))
   }
 
-  # save best model
-  # saveRDS(
-  #   best_model,
-  #   here::here(sprintf("data/LSO/%s_regression_model_spatial.rds", site)),
-  #   compress = "xz"
-  # )
-
-  return(tm)
+  return(test_results)
 })
 
+# collapse list to data frame
+results <- bind_rows(results)
 
+# grab test metrics for left out site
+tm <- results |>
+  group_by(site) |>
+  do({
+    . |> metrics(truth = flue, estimate = flue_predicted) |>
+      dplyr::select(
+        .metric,
+        .estimate
+      ) |>
+      rename(
+        metric = .metric,
+        value = .estimate
+      )
+  })
+
+
+# write summary results to file
+saveRDS(
+  results,
+  "data/LSO_results.rds",
+  compress = "xz"
+)
