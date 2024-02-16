@@ -1,5 +1,6 @@
 # Basic xgboost model with limited
-# hyperparameter tuning
+# hyperparameter tuning with
+# leave site out cross validation
 
 # load the ecosystem
 library(tidymodels)
@@ -14,7 +15,8 @@ ml_df <- read_ml_data(
   spatial = TRUE
 )
 
-results <- lapply(unique(ml_df$site)[1:2], function(site){
+# Leave-Site-Out cross validation loop
+results <- lapply(unique(ml_df$site), function(site){
 
   #---- data partitioning ----
 
