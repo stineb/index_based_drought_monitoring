@@ -3,91 +3,22 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 source("R/calc_VI.R")
+source("R/index_flue.R")
 
 # read the data
 df <- readRDS(here::here("data/machine_learning_training_data.rds"))
 vi <- calc_VI(df)
 df <- bind_cols(df, vi)
-
-# stray NA in the labelling?
-df$is_flue_drought[is.na(df$is_flue_drought)] <- FALSE
-
-df <- df |>
-  group_by(site) |>
-  do({
-
-    x <- .
-    x$idx <- NA
-
-    # find breaks between TRUE 1 and FALSE 0
-    breaks <- diff(x$is_flue_drought)
-
-    # if not breaks return original
-    # else continue
-    if(!all(breaks == 0)){
-
-    # if start position is TRUE
-    # set start posiiton as 1
-    # else not
-    if(x$is_flue_drought[1]){
-      start <- c(1, which(breaks == 1) - 20)
-    } else {
-      start <- which(breaks == 1) - 20
-    }
-
-    # bottom out
-    start[start < 1] <- 1
-
-    # which breaks transition from TRUE
-    # to FALSE and truncate on start
-    # length
-    end <- which(breaks == -1)
-    if(length(end) < length(start)){
-      end <- c(end, nrow(x))
-    }
-
-    # combine in one location matrix
-    # and exclude chunks which are shorter
-    # than 7 values (days)
-    locs <- cbind(start, end, end - start)
-    locs <- locs[locs[,3] > 27,1:2]
-
-    # trap instances when locs is null or 0
-    if (!is.null(nrow(locs))){
-      if(nrow(locs) > 0){
-        for (i in 1:nrow(locs)){
-          x$idx[locs[i,1]:locs[i,2]] <- i
-        }
-      }
-    }
-
-    } else {
-      x$idx <- NA
-    }
-
-    x
-  })
-
-# only retain cDD / cGR
-df <- df |>
-  filter(
-    !is.na(idx),
-    cluster %in% c("cDD","cGR")
-  ) |>
-  group_by(site, idx) |>
-  mutate(
-    n = 1:n()
-  ) |>
-  filter(
-    n < 100
-  ) |>
-  ungroup()
+df <- index_flue(df)
 
 VI <- "NDVI"
 
 # summary stats across
 # clusters and time steps
 df2 <- df |>
+  filter(
+    (n > -20 & n < 100)
+  ) |>
   select(
     cluster,
     n,
@@ -117,7 +48,7 @@ df2 <- df |>
 p <- ggplot(df2) +
   geom_ribbon(
     aes(
-    x = n - 20,
+    x = n,
     ymin = flue_qt_25,
     ymax = flue_qt_75
     ),
@@ -126,7 +57,7 @@ p <- ggplot(df2) +
   ) +
   geom_ribbon(
     aes(
-      x = n - 20,
+      x = n,
       ymin = flue_qt_10,
       ymax = flue_qt_90
     ),
@@ -135,14 +66,14 @@ p <- ggplot(df2) +
   ) +
   geom_line(
     aes(
-      n - 20,
+      n,
       flue_median
     ),
     colour = "blue"
   ) +
   geom_ribbon(
     aes(
-      x = n - 20,
+      x = n,
       ymin = VI_qt_25,
       ymax = VI_qt_75
     ),
@@ -151,7 +82,7 @@ p <- ggplot(df2) +
   ) +
   geom_ribbon(
     aes(
-      x = n - 20,
+      x = n,
       ymin = VI_qt_10,
       ymax = VI_qt_90
     ),
@@ -160,7 +91,7 @@ p <- ggplot(df2) +
   ) +
   geom_line(
     aes(
-      n - 20,
+      n,
       VI_median
     ),
     colour = "darkgreen"
