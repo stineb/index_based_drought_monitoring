@@ -17,6 +17,9 @@ library(xgboost)
 library(ranger)
 library(caret)
 library(reactable)
+source(here::here("R/calc_VI.R"))
+source(here::here("R/index_flue.R"))
+
 ```
 
 ## Introduction
@@ -32,8 +35,6 @@ We use fLUE predictions used in previous work as a target in a machine learning 
 - 10-fold cross validation
 - leave-site-out cross validation (summary stats)
 - 
-
-## Results
 
 ### Regression model
 
@@ -67,7 +68,9 @@ test <- rsample::testing(ml_df_split) |>
   select(-is_flue_drought)
 ```
 
-```{r}
+## Results
+
+```{r eval = FALSE}
 # read in precompiled model
 regression_model <- readRDS(
   here::here("data/regression_model_spatial.rds")
@@ -177,5 +180,142 @@ p <- ggplot(tm_long) +
   theme_bw()
 
 print(p)
+```
+
+```{r}
+
+# read in precompiled model
+regression_model <- readRDS(
+  here::here("data/regression_model_spatial.rds")
+  )
+
+
+ml_df <- readRDS(
+  here::here("data/machine_learning_training_data.rds")
+)
+
+ml_df <- index_flue(ml_df)
+
+# run the model on our test data
+# using predict()
+flue_predicted <- predict(
+  regression_model,
+  ml_df)$.pred
+
+ml_df$flue_predicted <- flue_predicted
+
+vi <- calc_VI(ml_df, indices = here::here("data/spectral-indices-table.csv"))
+ml_df <- bind_cols(ml_df, vi)
+
+# VI to select
+VI <- "EVI"
+
+# summary stats across
+# clusters and time steps
+df2 <- ml_df |>
+  filter(
+    (n > -20 & n < 100),
+    cluster %in% c("cDD", "cGR")
+  ) |>
+  select(
+    cluster,
+    n,
+    flue,
+    flue_predicted,
+    !!VI
+  ) 
+
+df3 <- df2 |>
+  group_by(cluster, n) |>
+  summarize(
+    # reference
+    flue_median = median(flue),
+    flue_qt_25 = quantile(flue,0.25),
+    flue_qt_75 = quantile(flue,0.75),
+    flue_qt_10 = quantile(flue,0.10),
+    flue_qt_90 = quantile(flue,0.90),
+    
+    # estimate
+    flue_pred_median = median(flue_predicted, na.rm = TRUE),
+    flue_pred_qt_25 = quantile(flue_predicted,0.25, na.rm = TRUE),
+    flue_pred_qt_75 = quantile(flue_predicted,0.75, na.rm = TRUE),
+    flue_pred_qt_10 = quantile(flue_predicted,0.10, na.rm = TRUE),
+    flue_pred_qt_90 = quantile(flue_predicted,0.90, na.rm = TRUE),
+
+    # VI
+    VI_median = median(!!sym(VI)),
+    VI_qt_25 = quantile(!!sym(VI), 0.25),
+    VI_qt_75 = quantile(!!sym(VI), 0.75),
+    VI_qt_10 = quantile(!!sym(VI), 0.10),
+    VI_qt_90 = quantile(!!sym(VI), 0.90)
+  ) |>
+  ungroup()
+
+
+#---- figure ----
+
+p <- ggplot(df3) +
+  geom_ribbon(
+    aes(
+    x = n,
+    ymin = flue_qt_25,
+    ymax = flue_qt_75
+    ),
+    fill = "lightblue",
+    alpha = 0.2
+  ) +
+  geom_ribbon(
+    aes(
+      x = n,
+      ymin = flue_qt_10,
+      ymax = flue_qt_90
+    ),
+    fill = "lightblue",
+    alpha = 0.2
+  ) +
+  geom_line(
+    aes(
+      n,
+      flue_median
+    ),
+    colour = "blue"
+  ) +
+    geom_line(
+    aes(
+      n,
+      flue_pred_median
+    ),
+    colour = "darkblue"
+  ) +
+  geom_ribbon(
+    aes(
+      x = n,
+      ymin = VI_qt_25,
+      ymax = VI_qt_75
+    ),
+    fill = "lightgreen",
+    alpha = 0.2
+  ) +
+  geom_ribbon(
+    aes(
+      x = n,
+      ymin = VI_qt_10,
+      ymax = VI_qt_90
+    ),
+    fill = "lightgreen",
+    alpha = 0.2
+  ) +
+  geom_line(
+    aes(
+      n,
+      VI_median
+    ),
+    colour = "darkgreen"
+  ) +
+  theme_minimal() +
+  facet_wrap(cluster~.)
+
+print(p)
+
 ```
 
