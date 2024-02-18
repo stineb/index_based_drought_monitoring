@@ -16,76 +16,26 @@ library(tidymodels)
 library(xgboost)
 library(ranger)
 library(caret)
+library(reactable)
 ```
 
-## Classification model
+## Introduction
 
-Read in data (splitting out the test data), using random seed 0 (as per training).
+"fLUE identifies substantial drought impacts that are not captured when relying solely on VPD and greenness changes and, when seasonally recurring, are missed by traditional, anomaly-based drought indices. Counter to common assumptions, fLUE reductions are largest in drought-deciduous vegetation, including grasslands. Our results highlight the necessity to account for soil moisture limitation in terrestrial primary productivity data products, especially for drought-related assessments."
 
-```{r echo = TRUE}
-# set seed for consistency
-set.seed(0)
+We use fLUE predictions used in previous work as a target in a machine learning based methodology to model this response not based on conventional drought based vegetation indices but using an xgboost based machine learning approach. We used a regression analysis to model fLUE using a 10-fold cross validation and leave-site-out approach.
 
-# read in training data
-ml_df <- readRDS(
-  here::here("data/machine_learning_training_data.rds")
-  ) |>
-  dplyr::select(
-    -date,
-    -year,
-    -doy,
-    -cluster,
-    -site
-  ) |>
-  mutate(
-    is_flue_drought = as.factor(is_flue_drought)
-  ) |>
-  na.omit() |>
-  select(
-    flue,
-    is_flue_drought,
-    starts_with("Nadir")
-  )
+## Methodology
 
+- fLUE ~70 sites / xyz years
+- data split 80/20 between fLUE (<1 threshold based values) 
+- 10-fold cross validation
+- leave-site-out cross validation (summary stats)
+- 
 
-# create a data split across
-# across both droughted and non-droughted days
-ml_df_split <- ml_df |>
-  rsample::initial_split(
-    strata = is_flue_drought,
-    prop = 0.8
-  )
+## Results
 
-# select training and testing
-# data based on this split
-train <- rsample::training(ml_df_split) |>
-  select(-flue)
-test <- rsample::testing(ml_df_split) |>
-  select(-flue)
-```
-
-```{r}
-# read in precompiled model
-classification_model <- readRDS(
-  here::here("data/classification_model.rds")
-  )
-
-# run the model on our test data
-# using predict()
-test_results <- predict(
-  classification_model,
-  test)
-
-# use caret's confusionMatrix function to get
-# a full overview of metrics
-caret::confusionMatrix(
-  reference = as.factor(test$is_flue_drought),
-  data = as.factor(test_results$.pred_class)
-)
-
-```
-
-## Regression model
+### Regression model
 
 ```{r echo = FALSE}
 # read in training data
@@ -120,20 +70,112 @@ test <- rsample::testing(ml_df_split) |>
 ```{r}
 # read in precompiled model
 regression_model <- readRDS(
-  here::here("data/regression_model.rds")
+  here::here("data/regression_model_spatial.rds")
   )
 
 # run the model on our test data
 # using predict()
 test_results <- predict(
   regression_model,
-  test)
+  test)$.pred
 
-plot(
-  test$flue,
-  test_results$.pred,
-  xlab = "Observed fLUE",
-  ylab = "Predicted fLUE"
-)
+df <- data.frame(
+  flue = test$flue,
+  flue_predicted = test_results
+  )
+
+p <- ggplot(df) +
+  geom_point(
+    aes(
+      flue,
+      flue_predicted
+    ),
+    alpha = 0.2
+  ) +
+  theme_minimal()
+
+print(p)
+```
+
+```{r}
+df |>
+  metrics(
+    truth = flue,
+    estimate = flue_predicted
+    ) |>
+  rename(
+    metric = .metric,
+    value = .estimate
+  ) |>
+  select(
+    metric,
+    value
+  ) |>
+  mutate(
+    value = round(value, 3)
+  ) |>
+  reactable::reactable()
 
 ```
+
+```{r}
+
+ml_df <- readRDS(
+  here::here("data/machine_learning_training_data.rds")
+) |>
+  select(site, cluster) |>
+  unique()
+
+results <- readRDS(here::here("data/LSO_results.rds"))
+results <- left_join(ml_df, results)
+
+# grab test metrics for left out site
+tm <- results |>
+  group_by(site, cluster) |>
+  do({
+    . |> metrics(truth = flue, estimate = flue_predicted) |>
+      dplyr::select(
+        .metric,
+        .estimate
+      ) |>
+      rename(
+        metric = .metric,
+        value = .estimate
+      ) |>
+      mutate(
+        value = round(value, 3)
+      )
+  }) |>
+  pivot_wider(
+    values_from = value,
+    names_from = metric
+  )
+
+reactable::reactable(tm)
+```
+```{r echo = FALSE, warning=FALSE, fig.width = 10}
+tm_long <- tm |>
+  select(
+    rsq,
+    site,
+    cluster
+  ) |>
+  tidyr::pivot_longer(
+    cols = "rsq",
+    names_to = "rsq",
+    values_to = "value"
+  )
+
+# plot all validation graphs
+p <- ggplot(tm_long) +
+  geom_boxplot(
+    aes(
+      cluster,
+      value
+    )
+  ) +
+  theme_bw()
+
+print(p)
+```
+
