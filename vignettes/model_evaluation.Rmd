@@ -70,7 +70,7 @@ test <- rsample::testing(ml_df_split) |>
 
 ## Results
 
-```{r eval = FALSE}
+```{r}
 # read in precompiled model
 regression_model <- readRDS(
   here::here("data/regression_model_spatial.rds")
