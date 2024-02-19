@@ -29,4 +29,5 @@ Suggests:
     here,
     patchwork,
     reactable,
-    yardstick
+    yardstick,
+    vip
