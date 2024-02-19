@@ -29,8 +29,10 @@ ml_df_split <- ml_df |>
 
 # select training and testing
 # data based on this split
-train <- rsample::training(ml_df_split)
-test <- rsample::testing(ml_df_split)
+train <- rsample::training(ml_df_split) |>
+  select(-date)
+test <- rsample::testing(ml_df_split) |>
+  select(-date)
 
 #---- model definition and tuning ----
 

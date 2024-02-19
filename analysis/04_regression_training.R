@@ -28,9 +28,9 @@ ml_df_split <- ml_df |>
 # select training and testing
 # data based on this split
 train <- rsample::training(ml_df_split) |>
-  dplyr::select(-is_flue_drought)
+  dplyr::select(-is_flue_drought, -date)
 test <- rsample::testing(ml_df_split) |>
-  dplyr::select(-is_flue_drought)
+  dplyr::select(-is_flue_drought, -date)
 
 #---- model definition and tuning ----
 
