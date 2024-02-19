@@ -7,14 +7,25 @@ library(ranger)
 library(vip)
 library(dplyr)
 library(ggplot2)
+library(patchwork)
 
 # read in precompiled model
 model <- readRDS(
-  here::here("data/classification_model.rds")
+  here::here("data/regression_model_spatial.rds")
 )
 
-p <- model |>
+p1 <- model |>
   vip(geom = "point") +
-  labs(title = "Random forest variable importance")
+  labs(title = "Regression")
 
-print(p)
+# read in precompiled model
+model <- readRDS(
+  here::here("data/classification_model_spatial.rds")
+)
+
+p2 <- model |>
+  vip(geom = "point") +
+  labs(title = "Classification")
+
+
+print(p1|p2)
