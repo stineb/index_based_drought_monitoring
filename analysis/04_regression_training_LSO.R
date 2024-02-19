@@ -34,9 +34,15 @@ results <- lapply(unique(ml_df$site), function(site){
   # select training and testing
   # data based on this split
   train <- rsample::training(ml_df_split) |>
-    dplyr::select(-is_flue_drought)
+    dplyr::select(
+      -is_flue_drought,
+      -date
+      )
   test <- rsample::testing(ml_df_split) |>
-    dplyr::select(-is_flue_drought)
+    dplyr::select(
+      -is_flue_drought,
+      -date
+      )
 
   #---- model definition and tuning ----
 
@@ -63,7 +69,7 @@ results <- lapply(unique(ml_df$site), function(site){
   # cross-validation settings
   folds <- rsample::vfold_cv(
     train,
-    v = 10
+    v = 2
   )
 
   # optimize the model (hyper) parameters
@@ -106,13 +112,10 @@ results <- lapply(unique(ml_df$site), function(site){
 
   # run the model on our test data
   # using predict()
-  test_results <- predict(best_model, LSO_test)
+  test_results <- predict(best_model, LSO_test)$.pred
   test_results <- bind_cols(
     LSO_test,
-    test_results
-    ) |>
-    rename(
-      flue_predicted = .pred
+    flue_predicted = test_results
     )
 
   # create output dir if required
@@ -127,22 +130,6 @@ results <- lapply(unique(ml_df$site), function(site){
 
 # collapse list to data frame
 results <- bind_rows(results)
-
-# grab test metrics for left out site
-tm <- results |>
-  group_by(site) |>
-  do({
-    . |> metrics(truth = flue, estimate = flue_predicted) |>
-      dplyr::select(
-        .metric,
-        .estimate
-      ) |>
-      rename(
-        metric = .metric,
-        value = .estimate
-      )
-  })
-
 
 # write summary results to file
 saveRDS(

@@ -18,7 +18,6 @@ read_ml_data <- function(
     path
   ) |>
     dplyr::select(
-      -date,
       -year,
       -doy,
       -cluster
