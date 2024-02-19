@@ -74,6 +74,14 @@ site_data <- site_data |>
     band = gsub("_1$", "",  band)
   )
 
+# kick out the surface reflectance values
+# might be of value later so I won't
+# alter the above routines
+site_data <- site_data |>
+  filter(
+    !grepl("sur_refl*", band)
+  )
+
 # save full data set
 saveRDS(
   site_data,
