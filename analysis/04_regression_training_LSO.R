@@ -35,11 +35,14 @@ results <- lapply(unique(ml_df$site), function(site){
   # data based on this split
   train <- rsample::training(ml_df_split) |>
     dplyr::select(
+      -site,
       -is_flue_drought,
       -date
       )
+
   test <- rsample::testing(ml_df_split) |>
     dplyr::select(
+      -site,
       -is_flue_drought,
       -date
       )
