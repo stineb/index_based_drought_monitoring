@@ -18,6 +18,7 @@ Depends:
     R (>= 4.2)
 Imports:
     tidymodels,
+    tidyverse,
     xgboost,
     ranger,
     caret,
