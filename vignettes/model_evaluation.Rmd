@@ -316,6 +316,5 @@ p <- ggplot(df3) +
   facet_wrap(cluster~.)
 
 print(p)
-
 ```
 

@@ -30,7 +30,7 @@ ml_df_split <- ml_df |>
     prop = 0.8
   )
 
-#---- center the data ----
+#---- center the data ---- #TODO
 
 # select training and testing
 # data based on this split
