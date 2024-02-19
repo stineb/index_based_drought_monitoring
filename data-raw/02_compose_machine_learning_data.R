@@ -14,15 +14,16 @@ flue <- readr::read_csv("data/flue_stocker18nphyt.csv")
 
 # pivot wider for easier band math
 site_data_wide <- site_data |>
-  select(
+  dplyr::select(
     site,
     band,
     date,
     value
   ) |>
-  pivot_wider(
+  tidyr::pivot_wider(
     names_from = band,
-    values_from = value
+    values_from = value,
+    values_fn = mean
   )
 
 # merge with flue
