@@ -28,6 +28,7 @@ read_ml_data <- function(
     ml_df <- ml_df |>
       dplyr::select(
         site,
+        date,
         flue,
         is_flue_drought,
         starts_with("Nadir"),
