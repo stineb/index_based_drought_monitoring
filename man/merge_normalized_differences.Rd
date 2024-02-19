@@ -15,5 +15,13 @@ A machine learning data frame with normalized band ratios appended
 }
 \description{
 Calculate normalized difference ratios
-for all possible "sur_refl" band combinations
+for all possible "sur_refl" band combinations.
+}
+\details{
+This is a naive approach and a more tailored / specific methodology
+can use only select normalized difference band combinations by specifying
+which columns to consider in the lapply() routine in this function.
+
+Additional improvements can probably be made by using {purrr} in some
+exotic combination.
 }
