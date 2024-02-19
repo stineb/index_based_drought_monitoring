@@ -1,0 +1,47 @@
+---
+title: "VIP selection"
+author: "Koen Hufkens"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{VIP selection}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# load the ecosystem
+library(tidymodels)
+library(ranger)
+library(vip)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+
+```
+
+```{r echo = FALSE}
+
+# read in precompiled model
+model <- readRDS(
+  here::here("data/regression_model_spatial.rds")
+)
+
+p1 <- model |>
+  vip(geom = "point") +
+  labs(title = "Regression VIP")
+
+# read in precompiled model
+model <- readRDS(
+  here::here("data/classification_model_spatial.rds")
+)
+
+p2 <- model |>
+  vip(geom = "point") +
+  labs(title = "Classification VIP")
+
+
+print(p1|p2)
+
+```
