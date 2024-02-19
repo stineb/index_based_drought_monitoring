@@ -17,7 +17,10 @@ ml_df <- read_ml_data(
   here::here("data/machine_learning_training_data.rds"),
   spatial = TRUE
 ) |>
-  dplyr::select(-flue, -site)
+  dplyr::select(
+    -flue,
+    -site
+    )
 
 # create a data split across
 # across both droughted and non-droughted days
@@ -27,10 +30,18 @@ ml_df_split <- ml_df |>
     prop = 0.8
   )
 
+#---- center the data ----
+
 # select training and testing
 # data based on this split
+# and center the data on training
+# mean / sd
+# this scales values within the same
+# range for better representation
+
 train <- rsample::training(ml_df_split) |>
   select(-date)
+
 test <- rsample::testing(ml_df_split) |>
   select(-date)
 
@@ -116,4 +127,3 @@ saveRDS(
   "data/classification_model_spatial.rds",
   compress = "xz"
 )
-

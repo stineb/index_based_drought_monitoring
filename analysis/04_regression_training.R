@@ -15,7 +15,11 @@ set.seed(0)
 ml_df <- read_ml_data(
   here::here("data/machine_learning_training_data.rds"),
   spatial = TRUE
-)
+) |>
+  dplyr::select(
+    -site,
+    -date
+  )
 
 # create a data split across
 # across both drought and non-drought days
@@ -25,12 +29,19 @@ ml_df_split <- ml_df |>
     prop = 0.8
   )
 
+#---- center the data ----
+
 # select training and testing
 # data based on this split
+# and center the data on training
+# mean / sd
+# this scales values within the same
+# range for better representation
+
 train <- rsample::training(ml_df_split) |>
-  dplyr::select(-is_flue_drought, -date)
+  dplyr::select(-is_flue_drought)
 test <- rsample::testing(ml_df_split) |>
-  dplyr::select(-is_flue_drought, -date)
+  dplyr::select(-is_flue_drought)
 
 #---- model definition and tuning ----
 
@@ -57,7 +68,7 @@ hp_settings <- dials::grid_latin_hypercube(
 # cross-validation settings
 folds <- rsample::vfold_cv(
   train,
-  v = 10
+  v = 2
   )
 
 # optimize the model (hyper) parameters
