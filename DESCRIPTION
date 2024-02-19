@@ -28,4 +28,5 @@ Suggests:
     rmarkdown,
     here,
     patchwork,
-    reactable
+    reactable,
+    yardstick

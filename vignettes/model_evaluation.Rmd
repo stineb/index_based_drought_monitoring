@@ -102,7 +102,7 @@ print(p)
 
 ```{r}
 df |>
-  metrics(
+  yardstick::metrics(
     truth = flue,
     estimate = flue_predicted
     ) |>
@@ -136,7 +136,7 @@ results <- left_join(ml_df, results)
 tm <- results |>
   group_by(site, cluster) |>
   do({
-    . |> metrics(truth = flue, estimate = flue_predicted) |>
+    . |> yardstick::metrics(truth = flue, estimate = flue_predicted) |>
       dplyr::select(
         .metric,
         .estimate
