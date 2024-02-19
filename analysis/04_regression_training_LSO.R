@@ -118,13 +118,6 @@ results <- lapply(unique(ml_df$site), function(site){
     flue_predicted = test_results
     )
 
-  # create output dir if required
-  if(!dir.exists(here::here("/data/LSO"))){
-    message("Output directory exists")
-  } else {
-    dir.create(here::here("data/LSO"))
-  }
-
   return(test_results)
 })
 
