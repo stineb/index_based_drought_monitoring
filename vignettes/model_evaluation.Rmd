@@ -21,6 +21,27 @@ source(here::here("R/calc_VI.R"))
 source(here::here("R/index_flue.R"))
 set.seed(0)
 
+# read in training data
+ml_df <- readRDS(
+  here::here("data/machine_learning_training_data.rds")
+  ) |>
+  na.omit()
+
+# create a data split across
+# across both droughted and non-droughted days
+ml_df_split <- ml_df |>
+  rsample::initial_split(
+    strata = is_flue_drought,
+    prop = 0.8
+  )
+
+# select training and testing
+# data based on this split
+train <- rsample::training(ml_df_split) |>
+  select(-is_flue_drought)
+test <- rsample::testing(ml_df_split) |>
+  select(-is_flue_drought)
+
 ```
 
 ## Introduction
@@ -39,36 +60,6 @@ We use fLUE predictions used in previous work as a target in a machine learning 
 
 ### Regression model
 
-```{r echo = FALSE, message=FALSE, warning=FALSE}
-# read in training data
-ml_df <- readRDS(
-  here::here("data/machine_learning_training_data.rds")
-  ) |>
-  dplyr::select(
-    -date,
-    -year,
-    -doy,
-    -cluster,
-    -site
-  ) |>
-  na.omit()
-
-# create a data split across
-# across both droughted and non-droughted days
-ml_df_split <- ml_df |>
-  rsample::initial_split(
-    strata = is_flue_drought,
-    prop = 0.8
-  )
-
-# select training and testing
-# data based on this split
-train <- rsample::training(ml_df_split) |>
-  select(-is_flue_drought)
-test <- rsample::testing(ml_df_split) |>
-  select(-is_flue_drought)
-```
-
 ## Results
 
 Scatterplot of the results, observed vs. predicted fLUE.
@@ -86,7 +77,7 @@ test_results <- predict(
   test)$.pred
 
 df <- data.frame(
-  flue = test$flue,
+  test,
   flue_predicted = test_results
   )
 
@@ -98,7 +89,8 @@ p <- ggplot(df) +
     ),
     alpha = 0.2
   ) +
-  theme_minimal()
+  theme_minimal() +
+  facet_wrap(~cluster)
 
 print(p)
 ```
