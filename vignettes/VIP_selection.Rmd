@@ -21,6 +21,8 @@ library(patchwork)
 
 ```
 
+Quick overview of variables of importance, ranked according to contribution.
+
 ```{r echo = FALSE}
 
 # read in precompiled model

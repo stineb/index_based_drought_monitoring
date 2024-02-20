@@ -19,6 +19,7 @@ library(caret)
 library(reactable)
 source(here::here("R/calc_VI.R"))
 source(here::here("R/index_flue.R"))
+set.seed(0)
 
 ```
 
@@ -34,11 +35,11 @@ We use fLUE predictions used in previous work as a target in a machine learning 
 - data split 80/20 between fLUE (<1 threshold based values) 
 - 10-fold cross validation
 - leave-site-out cross validation (summary stats)
-- 
+- ...
 
 ### Regression model
 
-```{r echo = FALSE}
+```{r echo = FALSE, message=FALSE, warning=FALSE}
 # read in training data
 ml_df <- readRDS(
   here::here("data/machine_learning_training_data.rds")
@@ -70,7 +71,9 @@ test <- rsample::testing(ml_df_split) |>
 
 ## Results
 
-```{r}
+Scatterplot of the results, observed vs. predicted fLUE.
+
+```{r echo = FALSE, message=FALSE, warning=FALSE}
 # read in precompiled model
 regression_model <- readRDS(
   here::here("data/regression_model_spatial.rds")
@@ -100,7 +103,9 @@ p <- ggplot(df) +
 print(p)
 ```
 
-```{r}
+Table of the regression metrics.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 df |>
   yardstick::metrics(
     truth = flue,
@@ -120,69 +125,9 @@ df |>
   reactable::reactable()
 
 ```
+Comparing the fLUE response from publication (blue) and modelled values (dark blue).
 
-```{r}
-
-ml_df <- readRDS(
-  here::here("data/machine_learning_training_data.rds")
-) |>
-  select(site, cluster) |>
-  unique()
-
-results <- readRDS(here::here("data/LSO_results.rds"))
-results <- left_join(ml_df, results)
-
-# grab test metrics for left out site
-tm <- results |>
-  group_by(site, cluster) |>
-  do({
-    . |> yardstick::metrics(truth = flue, estimate = flue_predicted) |>
-      dplyr::select(
-        .metric,
-        .estimate
-      ) |>
-      rename(
-        metric = .metric,
-        value = .estimate
-      ) |>
-      mutate(
-        value = round(value, 3)
-      )
-  }) |>
-  pivot_wider(
-    values_from = value,
-    names_from = metric
-  )
-
-reactable::reactable(tm)
-```
-```{r echo = FALSE, warning=FALSE, fig.width = 10}
-tm_long <- tm |>
-  select(
-    rsq,
-    site,
-    cluster
-  ) |>
-  tidyr::pivot_longer(
-    cols = "rsq",
-    names_to = "rsq",
-    values_to = "value"
-  )
-
-# plot all validation graphs
-p <- ggplot(tm_long) +
-  geom_boxplot(
-    aes(
-      cluster,
-      value
-    )
-  ) +
-  theme_bw()
-
-print(p)
-```
-
-```{r}
+```{r echo = FALSE, message=FALSE, warning=FALSE}
 
 # read in precompiled model
 regression_model <- readRDS(
@@ -317,4 +262,70 @@ p <- ggplot(df3) +
 
 print(p)
 ```
+
+#### Leave-site-out summary stats
+
+Summary statistics for the leave-site-out cross validation.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ml_df <- readRDS(
+  here::here("data/machine_learning_training_data.rds")
+) |>
+  select(site, cluster) |>
+  unique()
+
+results <- readRDS(here::here("data/LSO_results.rds"))
+results <- left_join(ml_df, results)
+
+# grab test metrics for left out site
+tm <- results |>
+  group_by(site, cluster) |>
+  do({
+    . |> yardstick::metrics(truth = flue, estimate = flue_predicted) |>
+      dplyr::select(
+        .metric,
+        .estimate
+      ) |>
+      rename(
+        metric = .metric,
+        value = .estimate
+      ) |>
+      mutate(
+        value = round(value, 3)
+      )
+  }) |>
+  pivot_wider(
+    values_from = value,
+    names_from = metric
+  )
+
+reactable::reactable(tm)
+```
+```{r echo = FALSE, message=FALSE, warning=FALSE}
+tm_long <- tm |>
+  select(
+    rsq,
+    site,
+    cluster
+  ) |>
+  tidyr::pivot_longer(
+    cols = "rsq",
+    names_to = "rsq",
+    values_to = "value"
+  )
+
+# plot all validation graphs
+p <- ggplot(tm_long) +
+  geom_boxplot(
+    aes(
+      cluster,
+      value
+    )
+  ) +
+  theme_bw()
+
+print(p)
+```
+
 
