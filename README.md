@@ -11,6 +11,10 @@ This project addresses the first (1) component of this issue by using the whole 
 
 The analysis was limited to locations where soil droughts could be quantified based upon ecosystem fluxes as described in Stocker et al. (2018, 2019). Sites are limited to those as listed in this publication, further limited to those with a relatively homogeneous vegetation.
 
+## GEE install
+
+https://developers.google.com/earth-engine/guides/python_install-conda
+
 ## References
 
 Stocker, Benjamin D., Jakob Zscheischler, Trevor F. Keenan, I. Colin Prentice, Sonia I. Seneviratne, and Josep Peñuelas. “Drought Impacts on Terrestrial Primary Production Underestimated by Satellite Monitoring.” Nature Geoscience 12, no. 4 (April 2019): 264–70. https://doi.org/10.1038/s41561-019-0318-6.
