@@ -81,14 +81,15 @@ df <- data.frame(
   flue_predicted = test_results
   )
 
-p <- ggplot(df) +
-  geom_point(
-    aes(
+p <- ggplot(df,aes(
       flue,
       flue_predicted
-    ),
+    )) +
+  geom_abline(slope = 1, intercept = 0) +
+  geom_point(
     alpha = 0.2
   ) +
+  geom_smooth(method = lm) +
   theme_minimal() +
   facet_wrap(~cluster)
 
@@ -363,14 +364,15 @@ df <- data.frame(
   flue_predicted = test_results
   )
 
-p <- ggplot(df) +
-  geom_point(
-    aes(
+p <- ggplot(df,aes(
       flue,
       flue_predicted
-    ),
+    )) +
+  geom_abline(slope = 1, intercept = 0) +
+  geom_point(
     alpha = 0.2
   ) +
+  geom_smooth(method = lm) +
   theme_minimal() +
   facet_wrap(~cluster)
 
