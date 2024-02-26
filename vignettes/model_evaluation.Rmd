@@ -58,9 +58,9 @@ We use fLUE predictions used in previous work as a target in a machine learning 
 - leave-site-out cross validation (summary stats)
 - ...
 
-### Regression model
-
 ## Results
+
+### Regression model
 
 Scatterplot of the results, observed vs. predicted fLUE.
 
@@ -322,8 +322,6 @@ print(p)
 
 ### Regression model landsat
 
-## Results
-
 Scatterplot of the results, observed vs. predicted fLUE.
 
 ```{r echo = FALSE, message=FALSE, warning=FALSE}
@@ -379,8 +377,27 @@ p <- ggplot(df) +
 print(p)
 ```
 
-Table of the regression metrics.
 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+df |>
+  yardstick::metrics(
+    truth = flue,
+    estimate = flue_predicted
+    ) |>
+  rename(
+    metric = .metric,
+    value = .estimate
+  ) |>
+  select(
+    metric,
+    value
+  ) |>
+  mutate(
+    value = round(value, 3)
+  ) |>
+  reactable::reactable()
+
+```
 
 #### Landsat Leave-site-out summary stats
 
