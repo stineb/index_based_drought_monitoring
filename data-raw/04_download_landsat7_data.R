@@ -60,7 +60,7 @@ landsat_data <- info |>
     # time the duration of the call for reporting
     system(
       sprintf(
-        "%s %s/gee_subset.py -p %s -b %s -s %s -e %s -l %s -d %s -sc 30",
+        "%s %s/gee_subset.py -p %s -b %s -s %s -e %s -l %s -d %s -sc 1",
         python_path,
         path,
         product,

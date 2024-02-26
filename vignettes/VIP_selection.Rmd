@@ -43,7 +43,16 @@ p2 <- model |>
   vip(geom = "point") +
   labs(title = "Classification VIP")
 
+# read in precompiled model
+model <- readRDS(
+  here::here("data/regression_model_landsat.rds")
+)
 
-print(p1|p2)
+p3 <- model |>
+  vip(geom = "point") +
+  labs(title = "Landsat regression VIP")
+
+
+print(p1|p2|p3)
 
 ```

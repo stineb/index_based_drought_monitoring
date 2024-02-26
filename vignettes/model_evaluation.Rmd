@@ -320,4 +320,130 @@ p <- ggplot(tm_long) +
 print(p)
 ```
 
+### Regression model landsat
 
+## Results
+
+Scatterplot of the results, observed vs. predicted fLUE.
+
+```{r echo = FALSE, message=FALSE, warning=FALSE}
+
+# read in training data
+ml_df <- readRDS(
+  here::here("data/machine_learning_training_data_landsat.rds")
+  ) |>
+  na.omit()
+
+# create a data split across
+# across both droughted and non-droughted days
+ml_df_split <- ml_df |>
+  rsample::initial_split(
+    strata = is_flue_drought,
+    prop = 0.8
+  )
+
+# select training and testing
+# data based on this split
+train <- rsample::training(ml_df_split) |>
+  select(-is_flue_drought)
+test <- rsample::testing(ml_df_split) |>
+  select(-is_flue_drought)
+
+# read in precompiled model
+regression_model <- readRDS(
+  here::here("data/regression_model_landsat.rds")
+  )
+
+# run the model on our test data
+# using predict()
+test_results <- predict(
+  regression_model,
+  test)$.pred
+
+df <- data.frame(
+  test,
+  flue_predicted = test_results
+  )
+
+p <- ggplot(df) +
+  geom_point(
+    aes(
+      flue,
+      flue_predicted
+    ),
+    alpha = 0.2
+  ) +
+  theme_minimal() +
+  facet_wrap(~cluster)
+
+print(p)
+```
+
+Table of the regression metrics.
+
+
+#### Landsat Leave-site-out summary stats
+
+Summary statistics for the leave-site-out cross validation.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ml_df <- readRDS(
+  here::here("data/machine_learning_training_data_landsat.rds")
+) |>
+  select(site, cluster) |>
+  unique()
+
+results <- readRDS(here::here("data/LSO_results_landsat.rds"))
+results <- left_join(ml_df, results)
+
+# grab test metrics for left out site
+tm <- results |>
+  group_by(site, cluster) |>
+  do({
+    . |> yardstick::metrics(truth = flue, estimate = flue_predicted) |>
+      dplyr::select(
+        .metric,
+        .estimate
+      ) |>
+      rename(
+        metric = .metric,
+        value = .estimate
+      ) |>
+      mutate(
+        value = round(value, 3)
+      )
+  }) |>
+  pivot_wider(
+    values_from = value,
+    names_from = metric
+  )
+
+reactable::reactable(tm)
+```
+
+```{r echo = FALSE, message=FALSE, warning=FALSE}
+tm_long <- tm |>
+  select(
+    rsq,
+    site,
+    cluster
+  ) |>
+  tidyr::pivot_longer(
+    cols = "rsq",
+    names_to = "rsq",
+    values_to = "value"
+  )
+
+# plot all validation graphs
+p <- ggplot(tm_long) +
+  geom_boxplot(
+    aes(
+      cluster,
+      value
+    )
+  ) +
+  theme_bw()
+
+print(p)
+```
