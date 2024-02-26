@@ -1,0 +1,6 @@
+name: ibdm
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - earthengine-api
