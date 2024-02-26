@@ -5,7 +5,7 @@
 # less dense
 
 # change this depending on system settings
-python_path = "/usr/local/bin/python"
+python_path = "/usr/bin/python3"
 
 library(dplyr)
 
@@ -31,17 +31,20 @@ info <- readr::read_csv("data/site_info.csv") |>
 # on OSX or Linux.
 
 # basic gee_subset requirements apply (working GEE install)
-setwd(here::here("src"))
-system("git clone https://github.com/khufkens/google_earth_engine_subsets.git")
-path = here::here("src/google_earth_engine_subsets/gee_subset/")
+if(!dir.exists("src/google_earth_engine_subsets")){
+  system(sprintf("git clone https://github.com/khufkens/google_earth_engine_subsets.git %s", here::here("src")))
+}
+
+path <- here::here("src/google_earth_engine_subsets/src/gee_subset/")
 
 # set product parameters, such as
 # product name, band(s) to query, start and end date of the range
 # and the lcoation
-product = 'LANDSAT/LE07/C02/T1_L2'
-band = "SR_B1 SR_B2 SR_B3 SR_B4 SR_B5 ST_B6 SR_B7 QA_PIXEL"
+product <- 'LANDSAT/LE07/C02/T1_L2'
+band <- "SR_B1 SR_B2 SR_B3 SR_B4 SR_B5 ST_B6 SR_B7 QA_PIXEL"
 
-info |>
+# return landsat data
+landsat_data <- info |>
   group_by(sitename) |>
   do({
 
@@ -72,13 +75,28 @@ info |>
 
     # read in the data stored in the temporary directory
     df <- read.table(
-      paste0(
-        directory, "/site_",
-        tail( unlist( strsplit( product, "[/]" ) ), n=1 ), "_gee_subset.csv" ),
+      file.path(
+        directory,
+        paste0(
+          "/site_",
+          tail( unlist( strsplit( product, "[/]" ) ), n=1 ), "_",
+          gsub(" ", "_", band),
+          "_gee_subset.csv"
+          )
+      ),
       sep = ",",
       header = TRUE,
       stringsAsFactors = FALSE
     )
 
-   df
+    # add sitename
+    df$sitename <- unique(x$sitename)
+
+    # return data frame
+    df
   })
+
+# save downloaded landsat data
+# will post-process offline with script in
+# /data
+saveRDS(landsat_data, "data-raw/landsat7_data.rds", compress = "xz")
