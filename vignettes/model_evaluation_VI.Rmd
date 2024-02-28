@@ -1,0 +1,131 @@
+---
+title: "Model evaluation VI"
+author: "Koen Hufkens"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Model evaluation VI}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidymodels)
+library(xgboost)
+library(ranger)
+library(caret)
+library(reactable)
+source(here::here("R/calc_VI.R"))
+source(here::here("R/index_flue.R"))
+set.seed(0)
+
+# read in training data
+ml_df <- readRDS(
+  here::here("data/machine_learning_training_data.rds")
+  ) |>
+  na.omit()
+
+vi <- calc_VI(ml_df, indices = here::here("data/spectral-indices-table.csv"))
+ml_df <- bind_cols(ml_df, vi)
+
+# create a data split across
+# across both droughted and non-droughted days
+ml_df_split <- ml_df |>
+  rsample::initial_split(
+    strata = is_flue_drought,
+    prop = 0.8
+  )
+
+# select training and testing
+# data based on this split
+train <- rsample::training(ml_df_split) |>
+  select(-is_flue_drought)
+test <- rsample::testing(ml_df_split) |>
+  select(-is_flue_drought)
+
+```
+
+Comparing VI versus fLUE
+
+```{r echo = FALSE, message=FALSE, warning=FALSE}
+# read in precompiled model
+regression_model <- readRDS(
+  here::here("data/regression_model_spatial.rds")
+  )
+
+# run the model on our test data
+# using predict()
+test_results <- predict(
+  regression_model,
+  test)$.pred
+
+df <- data.frame(
+  test,
+  flue_predicted = test_results
+  )
+
+p <- ggplot(df,aes(
+      flue,
+      flue_predicted
+    )) +
+  geom_abline(slope = 1, intercept = 0) +
+  geom_point(
+    alpha = 0.2
+  ) +
+  geom_smooth(method = lm) +
+  theme_minimal() +
+  facet_wrap(~cluster)
+
+print(p)
+```
+
+```{r echo = FALSE, message=FALSE, warning=FALSE}
+
+test <- test |>
+  select(
+    -starts_with("Nadir"),
+    -starts_with("LST")
+  )
+
+test_long <- test |>
+  pivot_longer(
+    cols = 7:ncol(test),
+    names_to = "index",
+    values_to = "value"
+  ) |>
+  filter(
+    !is.na(value),
+    !is.infinite(value)
+  )
+
+rsq <- test_long |>
+  group_by(cluster, index) |>
+  do({
+  
+    rsq <- summary(lm(flue ~ value, data = .))$r.squared
+    
+    data.frame(rsq)
+    
+  })
+
+```
+
+
+```{r echo = FALSE, message=FALSE, warning=FALSE}
+
+# plot all validation graphs
+p <- ggplot(rsq) +
+  geom_boxplot(
+    aes(
+      cluster,
+      rsq
+    )
+  ) +
+  theme_bw()
+
+print(p)
+```
+
+
