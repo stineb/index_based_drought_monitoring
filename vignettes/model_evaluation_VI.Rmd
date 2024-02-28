@@ -45,11 +45,6 @@ train <- rsample::training(ml_df_split) |>
 test <- rsample::testing(ml_df_split) |>
   select(-is_flue_drought)
 
-```
-
-Comparing VI versus fLUE
-
-```{r echo = FALSE, message=FALSE, warning=FALSE}
 # read in precompiled model
 regression_model <- readRDS(
   here::here("data/regression_model_spatial.rds")
@@ -65,7 +60,10 @@ df <- data.frame(
   test,
   flue_predicted = test_results
   )
+
 ```
+
+Comparing VI versus fLUE
 
 ```{r echo = FALSE, message=FALSE, warning=FALSE}
 
@@ -87,7 +85,7 @@ df_long <- df |>
   )
 
 rsq <- df_long |>
-  group_by(cluster, index) |>
+  group_by(cluster, index, site) |>
   do({
   
     rsq <- summary(lm(flue ~ value, data = .))$r.squared
