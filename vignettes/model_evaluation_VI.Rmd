@@ -65,33 +65,19 @@ df <- data.frame(
   test,
   flue_predicted = test_results
   )
-
-p <- ggplot(df,aes(
-      flue,
-      flue_predicted
-    )) +
-  geom_abline(slope = 1, intercept = 0) +
-  geom_point(
-    alpha = 0.2
-  ) +
-  geom_smooth(method = lm) +
-  theme_minimal() +
-  facet_wrap(~cluster)
-
-print(p)
 ```
 
 ```{r echo = FALSE, message=FALSE, warning=FALSE}
 
-test <- test |>
+df <- df |>
   select(
     -starts_with("Nadir"),
     -starts_with("LST")
   )
 
-test_long <- test |>
+df_long <- df |>
   pivot_longer(
-    cols = 7:ncol(test),
+    cols = 7:ncol(df),
     names_to = "index",
     values_to = "value"
   ) |>
@@ -100,7 +86,7 @@ test_long <- test |>
     !is.infinite(value)
   )
 
-rsq <- test_long |>
+rsq <- df_long |>
   group_by(cluster, index) |>
   do({
   
@@ -108,7 +94,10 @@ rsq <- test_long |>
     
     data.frame(rsq)
     
-  })
+  }) |>
+  mutate(
+    flue = ifelse(index == "flue_predicted", TRUE, FALSE)
+  )
 
 ```
 
@@ -120,7 +109,8 @@ p <- ggplot(rsq) +
   geom_boxplot(
     aes(
       cluster,
-      rsq
+      rsq,
+      colour = flue
     )
   ) +
   theme_bw()
