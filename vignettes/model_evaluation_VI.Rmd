@@ -116,4 +116,28 @@ p <- ggplot(rsq) +
 print(p)
 ```
 
+```{r}
+rank_vi <- rsq |>
+  ungroup() |>
+  group_by(cluster) |>
+  mutate(
+    rsq_flue = quantile(rsq[index == "flue_predicted"], 0.5)
+  ) |>
+  filter(
+    !flue,
+    rsq > rsq_flue
+  ) |>
+  select(
+    index,
+    rsq
+  ) |>
+  group_by(cluster, index) |>
+  summarize(
+    rsq = mean(rsq)
+  )
+
+
+reactable::reactable(rank_vi)
+
+```
 
