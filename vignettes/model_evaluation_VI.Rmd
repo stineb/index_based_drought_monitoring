@@ -17,6 +17,8 @@ library(xgboost)
 library(ranger)
 library(caret)
 library(reactable)
+library(readr)
+library(forcats)
 source(here::here("R/calc_VI.R"))
 source(here::here("R/index_flue.R"))
 set.seed(0)
@@ -108,12 +110,37 @@ p <- ggplot(rsq) +
     aes(
       cluster,
       rsq,
-      colour = flue
+      fill = flue
     )
   ) +
-  theme_bw()
+  theme_classic()
 
 print(p)
+```
+
+Which one performs best?
+```{r}
+best_ind <- rsq |> 
+  filter(cluster != "cNA") |> 
+  group_by(index) |> 
+  summarise(rsq = median(rsq)) |> 
+  arrange(desc(rsq)) |> 
+  dplyr::slice(1:10) |> 
+  pull(index)
+
+rsq |> 
+  filter(index %in% best_ind, cluster != "cNA") |> 
+  mutate(index = fct_reorder(index, rsq, .fun = "mean")) |> 
+  ggplot() +
+  geom_boxplot(
+    aes(
+      reorder(index, desc(rsq)),
+      rsq
+    ),
+    fill = "grey"
+  ) +
+  facet_wrap(~cluster, nrow = 3) +
+  theme_classic()
 ```
 
 ```{r}
@@ -140,4 +167,3 @@ rank_vi <- rsq |>
 reactable::reactable(rank_vi)
 
 ```
-
