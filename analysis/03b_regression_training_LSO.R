@@ -27,7 +27,7 @@ folds <- group_vfold_cv(df, group = site, v = 5, balance = "groups")
 rec <- recipe(flue ~ ., data = df |> dplyr::select(-site)) %>%
   step_normalize(all_predictors())
 
-# Define model spec with tuning
+# Define xgboost model spec with tuning
 xgb_spec <- boost_tree(
   trees = 1000,
   min_n = tune(),
@@ -38,13 +38,24 @@ xgb_spec <- boost_tree(
   set_engine("xgboost") %>%
   set_mode("regression")
 
+# alternative: random forest model spec
+rf_spec <- rand_forest(
+  mtry = tune(),         # number of predictors to consider at each split
+  min_n = tune(),        # minimum number of data points in a node
+  trees = 500            # number of trees (fixed here)
+) %>%
+  set_engine("ranger") %>%
+  set_mode("regression")
+
+
 # Create workflow
 wf <- workflow() %>%
   add_recipe(rec) %>%
-  add_model(xgb_spec)
+  add_model(rf_spec)
 
 # Set up grid for tuning
-xgb_grid <- grid_space_filling(
+# for xgboost
+grid <- grid_space_filling(
   min_n(),
   tree_depth(),
   learn_rate(range = c(0.01, 0.3)),
@@ -52,12 +63,19 @@ xgb_grid <- grid_space_filling(
   size = 3 # 100 xxx
 )
 
+# for random forest
+grid <- grid_space_filling(
+  mtry(range = c(1, 2)),     # since we have only 2 predictors
+  min_n(range = c(2, 10)),
+  size = 10
+)
+
 # Tune the model
 set.seed(456)
 tune_res <- tune_grid(
   wf,
   resamples = folds,
-  grid = xgb_grid,
+  grid = grid,
   metrics = metric_set(rmse),
   control = control_grid(save_pred = TRUE)
 )
