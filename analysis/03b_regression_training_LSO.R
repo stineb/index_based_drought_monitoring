@@ -7,11 +7,15 @@ library(tidymodels)
 library(dplyr)
 library(here)
 library(xgboost)
+library(ggplot2)
+library(tictoc)
+# remotes::install_github("geco-bern/rgeco")
+library(rgeco)
+
 
 source("R/read_ml_data.R")
-set.seed(0)
 
-# read in training data
+## Read data -------------------------------------------------------------------
 df <- read_ml_data(
   here::here("data/machine_learning_training_data.rds"),
   spatial = TRUE
@@ -20,6 +24,7 @@ df <- read_ml_data(
     -date, -is_flue_drought
   )
 
+## Common training setup -------------------------------------------------------
 # Cross-validation by site (1 fold per site)
 folds <- group_vfold_cv(df, group = site, v = 5, balance = "groups")
 
@@ -27,9 +32,10 @@ folds <- group_vfold_cv(df, group = site, v = 5, balance = "groups")
 rec <- recipe(flue ~ ., data = df |> dplyr::select(-site)) %>%
   step_normalize(all_predictors())
 
-# Define xgboost model spec with tuning
+## xgboost  --------------------------------------------------------------------
+### Model spec ------------
 xgb_spec <- boost_tree(
-  trees = 1000,
+  trees = 500,
   min_n = tune(),
   tree_depth = tune(),
   learn_rate = tune(),
@@ -38,7 +44,69 @@ xgb_spec <- boost_tree(
   set_engine("xgboost") %>%
   set_mode("regression")
 
-# alternative: random forest model spec
+### Workflow --------
+wf_xgb <- workflow() %>%
+  add_recipe(rec) %>%
+  add_model(xgb_spec)
+
+### Tuning grid -----------
+set.seed(1)
+loss_reduction_raw <- loss_reduction(range = c(0, 10), trans = NULL)
+grid_xgb <- grid_space_filling(
+  min_n(range = c(5, 50)),
+  tree_depth(range = c(3, 12)),
+  learn_rate(range = c(0.01, 0.3)),
+  loss_reduction_raw,
+  size = 30
+)
+
+### Model tuning --------------
+# 7 min for 1 CV (one hyperparam combination), ~4 h for grid search size = 30
+tic()
+tune_res_xgb <- tune_grid(
+  wf_xgb,
+  resamples = folds,
+  grid = grid_xgb,
+  metrics = metric_set(rmse),
+  control = control_grid(save_pred = TRUE)
+)
+toc()
+
+saveRDS(tune_res_xgb, file = here::here("data/tune_res_xgb.rds"))
+
+### Plot results ---------
+# select the best hyperparameter combination
+best_config_xgb <- select_best(tune_res_xgb, metric = "rmse")
+
+# extract predictions on the held-out folds
+cv_predictions_best_xgb <- collect_predictions(tune_res_xgb) %>%
+  filter(.config == best_config_xgb$.config)
+
+# inspect visually
+out <- analyse_modobs2(
+  cv_predictions_best_xgb,
+  mod = ".pred",
+  obs = "flue",
+  type = "hex",
+  pal = "magma",
+  shortsubtitle = TRUE
+)
+
+out$gg
+
+### Final fit ------------
+# Select best model and finalize (takes about 5 min on Beni's Mac M1)
+final_wf_xgb <- finalize_workflow(wf_xgb, best_config_xgb)
+
+tic()
+final_fit_xgb <- fit(final_wf_xgb, data = df)
+toc()
+
+saveRDS(final_fit_xgb, file = here::here("data/final_fit_xgb.rds"))
+
+
+## Random Forest ---------------------------------------------------------------
+### Model spec ------------
 rf_spec <- rand_forest(
   mtry = tune(),         # number of predictors to consider at each split
   min_n = tune(),        # minimum number of data points in a node
@@ -47,103 +115,53 @@ rf_spec <- rand_forest(
   set_engine("ranger") %>%
   set_mode("regression")
 
-
-# Create workflow
-wf <- workflow() %>%
+### Workflow --------
+wf_rf <- workflow() %>%
   add_recipe(rec) %>%
   add_model(rf_spec)
 
-# Set up grid for tuning
-# for xgboost
-grid <- grid_space_filling(
-  min_n(),
-  tree_depth(),
-  learn_rate(range = c(0.01, 0.3)),
-  loss_reduction(),
-  size = 3 # 100 xxx
+### Tuning grid -----------
+# for random forest (~2.5 h for 30)
+mtry_typical <- floor((length(names(df))-2)/3)
+grid_rf <- grid_space_filling(
+  mtry(range = c(mtry_typical - 1, mtry_typical + 1)),     # since we have only 2 predictors
+  min_n(range = c(5, 50)),
+  size = 30  # more xxx
 )
 
-# for random forest
-grid <- grid_space_filling(
-  mtry(range = c(1, 2)),     # since we have only 2 predictors
-  min_n(range = c(2, 10)),
-  size = 10
-)
-
-# Tune the model
-set.seed(456)
-tune_res <- tune_grid(
-  wf,
+### Model tuning --------------
+tune_res_rf <- tune_grid(
+  wf_rf,
   resamples = folds,
-  grid = grid,
+  grid = grid_rf,
   metrics = metric_set(rmse),
   control = control_grid(save_pred = TRUE)
 )
 
+saveRDS(tune_res_rf, file = here::here("data/tune_res_rf.rds"))
+
+### Plot results ---------
 # select the best hyperparameter combination
-best_config <- select_best(tune_res, "rmse")
+best_config_rf <- select_best(tune_res_rf, metric = "rmse")
 
 # extract predictions on the held-out folds
-cv_predictions_best <- collect_predictions(tune_res) %>%
-  filter(.config == best_config$.config)
+cv_predictions_best_rf <- collect_predictions(tune_res_rf) %>%
+  filter(.config == best_config_rf$.config)
 
 # inspect visually
-library(ggplot2)
-
-cv_predictions_best %>%
-  ggplot(aes(x = y, y = .pred)) +
-  geom_point(alpha = 0.6) +
+cv_predictions_best_rf %>%
+  ggplot(aes(x = flue, y = .pred)) +
+  geom_point(alpha = 0.1) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
-  facet_wrap(~ id) +
-  labs(title = "Held-out predictions per fold")
+  labs(title = "Held-out predictions")
 
-# Select best model and finalize
-best_params <- select_best(tune_res, "rmse")
+### Final fit ------------
+# Select best model and finalize (takes about 5 min on Beni's Mac M1)
+final_wf_rf <- finalize_workflow(wf_rf, best_config_rf)
 
-final_wf <- finalize_workflow(wf, best_params)
+tic()
+final_fit_rf <- fit(final_wf_rf, data = df)
+toc()
 
-final_fit <- fit(final_wf, data = df)
+saveRDS(final_wf_rf, file = here::here("data/final_wf_rf.rds"))
 
-
-# #---- model definition and tuning ----
-#
-# # setup model
-# model <- parsnip::boost_tree(
-#   trees = 50,
-#   min_n = tune()
-# ) |>
-#   set_engine("xgboost") |>
-#   set_mode("regression")
-#
-# # create workflow
-# wflow <- workflows::workflow() |>
-#   workflows::add_model(model) |>
-#   workflows::add_formula(flue ~ .)
-#
-# # set hyperparameter selection settings
-# hp_settings <- dials::grid_latin_hypercube(
-#   tune::extract_parameter_set_dials(wflow),
-#   size = 3
-# )
-#
-#
-# # Example recipe
-# rec <- recipe(y ~ x1 + x2, data = df)
-#
-# # Model specification
-# rf_spec <- rand_forest(mtry = 2, trees = 100) %>%
-#   set_engine("ranger") %>%
-#   set_mode("regression")
-#
-# # Workflow
-# wf <- workflow() %>%
-#   add_recipe(rec) %>%
-#   add_model(rf_spec)
-#
-# # Fit with resampling
-# results <- fit_resamples(
-#   wf,
-#   resamples = cv_folds,
-#   metrics = metric_set(rmse, rsq),
-#   control = control_resamples(save_pred = TRUE)
-# )
