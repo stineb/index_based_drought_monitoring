@@ -77,6 +77,7 @@ saveRDS(tune_res_xgb, file = here::here("data/tune_res_xgb.rds"))
 ### Plot results ---------
 # select the best hyperparameter combination
 best_config_xgb <- select_best(tune_res_xgb, metric = "rmse")
+saveRDS(best_config_xgb, file = here::here("data/best_config_xgb.rds"))
 
 # extract predictions on the held-out folds
 cv_predictions_best_xgb <- collect_predictions(tune_res_xgb) %>%
@@ -143,17 +144,23 @@ saveRDS(tune_res_rf, file = here::here("data/tune_res_rf.rds"))
 ### Plot results ---------
 # select the best hyperparameter combination
 best_config_rf <- select_best(tune_res_rf, metric = "rmse")
+saveRDS(best_config_rf, file = here::here("data/best_config_rf.rds"))
 
 # extract predictions on the held-out folds
 cv_predictions_best_rf <- collect_predictions(tune_res_rf) %>%
   filter(.config == best_config_rf$.config)
 
 # inspect visually
-cv_predictions_best_rf %>%
-  ggplot(aes(x = flue, y = .pred)) +
-  geom_point(alpha = 0.1) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
-  labs(title = "Held-out predictions")
+out <- analyse_modobs2(
+  cv_predictions_best_rf,
+  mod = ".pred",
+  obs = "flue",
+  type = "hex",
+  pal = "magma",
+  shortsubtitle = TRUE
+)
+
+out$gg
 
 ### Final fit ------------
 # Select best model and finalize (takes about 5 min on Beni's Mac M1)
