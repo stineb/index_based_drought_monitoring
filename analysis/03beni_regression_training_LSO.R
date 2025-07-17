@@ -10,7 +10,6 @@ library(tictoc)
 # remotes::install_github("geco-bern/rgeco")
 library(rgeco)
 
-
 source("R/read_ml_data.R")
 
 ## Read data -------------------------------------------------------------------
@@ -20,15 +19,28 @@ df <- read_ml_data(
 ) |>
   dplyr::select(
     -date, -is_flue_drought
-  )
+  ) |>
+  rename(
+    NR_B1 = Nadir_Reflectance_Band1,
+    NR_B2 = Nadir_Reflectance_Band2,
+    NR_B3 = Nadir_Reflectance_Band3,
+    NR_B4 = Nadir_Reflectance_Band4,
+    NR_B5 = Nadir_Reflectance_Band5,
+    NR_B6 = Nadir_Reflectance_Band6,
+    NR_B7 = Nadir_Reflectance_Band7,
+    LST = LST_Day_1km
+    )
 
 ## Common training setup -------------------------------------------------------
 # Cross-validation by site (1 fold per site)
-folds <- group_vfold_cv(df, group = site, v = 5, balance = "groups")
+# folds <- group_vfold_cv(df, group = site, v = 5, balance = "groups")
+folds <- group_vfold_cv(df, group = "site", v = length(unique(df$site)))
 
 # Define recipe
-rec <- recipe(flue ~ ., data = df |> dplyr::select(-site)) %>%
-  step_normalize(all_predictors())
+rec <- recipe(
+  flue ~ NR_B1 + NR_B2 + NR_B3 + NR_B4 + NR_B5 + NR_B6 + NR_B7 + LST,
+  data = df
+  )
 
 ## xgboost  --------------------------------------------------------------------
 ### Model spec ------------
@@ -92,6 +104,7 @@ out <- analyse_modobs2(
 )
 
 out$gg
+ggsave(here::here("fig/modobs_cv_xgb.pdf"), width = 5, height = 4)
 
 ### Final fit ------------
 # Select best model and finalize (takes about 5 min on Beni's Mac M1)
@@ -159,6 +172,7 @@ out <- analyse_modobs2(
 )
 
 out$gg
+ggsave(here::here("fig/modobs_cv_rf.pdf"), width = 5, height = 4)
 
 ### Final fit ------------
 # Select best model and finalize (takes about 5 min on Beni's Mac M1)
