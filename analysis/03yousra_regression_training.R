@@ -1,4 +1,10 @@
-## regression model using MODIS data without meteo data
+# xgboost with leave-group of sites-out CV, with site-stratified initial split, comprehensive hp tuning (to be done by Yousra)
+
+# todo:
+#   - hyperparameter tuning
+#   - add (ERA5) temperature and VPD as predictors
+#   - leave-single site-out CV instead of leave-group of sites-out CV
+#   - try out without initial split, train on all data, consider only "Within CV" results
 
 # load the ecosystem
 library(tidymodels)
@@ -92,6 +98,9 @@ test <- ml_df |>
 
 # 5-fold leave-group of sites-out CV
 folds <- group_vfold_cv(train, group = "site", v = 5, balance = "groups")
+
+# # leave-single sites-out CV
+# folds <- group_vfold_cv(train, group = "site", v = length(unique(train$site)))
 
 # Define recipe
 rec <- recipe(

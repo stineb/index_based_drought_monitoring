@@ -1,6 +1,4 @@
-# Basic xgboost model with limited
-# hyperparameter tuning with
-# leave site out cross validation
+# xgboost with leave-group of sites-out CV, no initial split, comprehensive hp tuning, alternatively testing Random Forest
 
 # load the ecosystem
 library(tidymodels)
