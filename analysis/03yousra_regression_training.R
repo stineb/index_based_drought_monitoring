@@ -5,6 +5,7 @@
 #   - add (ERA5) temperature and VPD as predictors
 #   - leave-single site-out CV instead of leave-group of sites-out CV
 #   - try out without initial split, train on all data, consider only "Within CV" results
+#   - add vegetation type as predictor (see analysis/03beni_regression_training_LSO.R)
 
 # load the ecosystem
 library(tidymodels)

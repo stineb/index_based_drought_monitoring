@@ -9,6 +9,8 @@ library(ggplot2)
 library(tictoc)
 # remotes::install_github("geco-bern/rgeco")
 library(rgeco)
+# remotes::install_github("geco-bern/FluxDataKit")
+library(FluxDataKit)
 
 source("R/read_ml_data.R")
 
@@ -31,14 +33,43 @@ df <- read_ml_data(
     LST = LST_Day_1km
     )
 
+# add vegetation type as predictor
+sites <- df |>
+  select(site) |>
+  distinct() |>
+  left_join(
+    fdk_site_info |>
+      select(site = sitename, vegtype = igbp_land_use),
+    by = join_by(site)
+  )
+
+# manually add missing info to site info
+sites$vegtype[which(sites$site == "AR-Vir")] <- "ENF"
+sites$vegtype[which(sites$site == "AU-Ade")] <- "WSA"
+sites$vegtype[which(sites$site == "AU-Fog")] <- "WET"
+sites$vegtype[which(sites$site == "AU-Wom")] <- "EBF"
+sites$vegtype[which(sites$site == "DE-Spw")] <- "WET"
+sites$vegtype[which(sites$site == "DK-NuF")] <- "WET"
+sites$vegtype[which(sites$site == "SN-Dhr")] <- "SAV"
+sites$vegtype[which(sites$site == "US-Wi4")] <- "ENF"
+
+# add vegetation type
+df <- df |>
+  left_join(
+    sites,
+    by = join_by(site)
+  )
+
 ## Common training setup -------------------------------------------------------
-# Cross-validation by site (1 fold per site)
+# Cross-validation by group of sites (5 folds)
 # folds <- group_vfold_cv(df, group = site, v = 5, balance = "groups")
+
+# Cross-validation by site (number of folds corresponds to number of sites)
 folds <- group_vfold_cv(df, group = "site", v = length(unique(df$site)))
 
 # Define recipe
 rec <- recipe(
-  flue ~ NR_B1 + NR_B2 + NR_B3 + NR_B4 + NR_B5 + NR_B6 + NR_B7 + LST,
+  flue ~ NR_B1 + NR_B2 + NR_B3 + NR_B4 + NR_B5 + NR_B6 + NR_B7 + LST + vegtype,
   data = df
   )
 
@@ -63,7 +94,7 @@ wf_xgb <- workflow() %>%
 set.seed(1)
 loss_reduction_raw <- loss_reduction(range = c(0, 10), trans = NULL)
 grid_xgb <- grid_space_filling(
-  min_n(range = c(5, 50)),
+  min_n(range = c(10, 60)),
   tree_depth(range = c(3, 12)),
   learn_rate(range = c(0.01, 0.3)),
   loss_reduction_raw,
@@ -85,6 +116,24 @@ toc()
 saveRDS(tune_res_xgb, file = here::here("data/tune_res_xgb.rds"))
 
 ### Plot results ---------
+#### min_n ----------
+tune_res_xgb %>%
+  collect_metrics() %>%
+  filter(.metric == "rmse") %>%
+  ggplot(aes(x = min_n, y = mean)) +
+  geom_point() +
+  geom_line() +
+  labs(title = "RMSE by min_n", y = "RMSE")
+
+# #### tree_depth ----------
+# tune_res_xgb %>%
+#   collect_metrics() %>%
+#   filter(.metric == "rmse") %>%
+#   ggplot(aes(x = tree_depth, y = mean)) +
+#   geom_point() +
+#   geom_line() +
+#   labs(title = "RMSE by tree_depth", y = "RMSE")
+
 # select the best hyperparameter combination
 best_config_xgb <- select_best(tune_res_xgb, metric = "rmse")
 saveRDS(best_config_xgb, file = here::here("data/best_config_xgb.rds"))
