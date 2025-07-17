@@ -6,8 +6,10 @@ library(dplyr)
 library(caret)
 library(tidyverse)
 library(tictoc)
-remotes::install_github("geco-bern/rgeco")
+# remotes::install_github("geco-bern/rgeco")
 library(rgeco)
+# remotes::install_github("geco-bern/FluxDataKit")
+library(FluxDataKit)
 
 # source("R/read_ml_data.R")
 
@@ -33,26 +35,52 @@ ml_df <- readRDS(
   na.omit()
 
 ## Initial data split ----------------------------------------------------------
-# create a data split across
-# across both drought and non-drought days
-ml_df_split <- ml_df |>
-  rsample::initial_split(
-    strata = is_flue_drought,
-    prop = 0.8
+### By site, stratified ------------
+# split by site, stratified by climate zone and vegetation type
+siteinfo <- readr::read_csv("~/Downloads/site_info.csv") |>
+  filter(sitename %in% sites) |>
+  mutate(strata = interaction(koeppen_code_beck, igbp_land_use, drop = TRUE)) |>
+  left_join(
+    ml_df |>
+      select(sitename = site, cluster) |>
+      distinct(),
+    by = join_by(sitename)
   )
 
-# select training and testing
-# data based on this split
-train <- rsample::training(ml_df_split) |>
-  dplyr::select(-is_flue_drought)
-test <- rsample::testing(ml_df_split) |>
-  dplyr::select(-is_flue_drought)
+set.seed(1)
+
+sites_test <- siteinfo |>
+  # group_by(strata) |>
+  group_by(cluster) |>
+  sample_n(size = 4, replace = FALSE) |>
+  ungroup()
+
+train <- ml_df |>
+  filter(!(site %in% sites_test$sitename))
+test <- ml_df |>
+  filter(site %in% sites_test$sitename)
+
+# ### Mixing up sites --------------------
+# # create a data split across
+# # across both drought and non-drought days
+# ml_df_split <- ml_df |>
+#   rsample::initial_split(
+#     strata = "is_flue_drought",
+#     prop = 0.7
+#   )
+
+# # select training and testing
+# # data based on this split
+# train <- rsample::training(ml_df_split) |>
+#   dplyr::select(-is_flue_drought)
+# test <- rsample::testing(ml_df_split) |>
+#   dplyr::select(-is_flue_drought)
 
 
 ## Common training setup -------------------------------------------------------
 # Cross-validation by site (1 fold per site)
 # Set the factor levels for 'site'
-train$site <- factor(train$site, levels = levels(factor(ml_df$site)))
+# train$site <- factor(train$site, levels = levels(factor(ml_df$site)))
 
 # # leave-single site-out CV
 # num_sites <- length(unique(train$site))
@@ -68,15 +96,17 @@ folds <- group_vfold_cv(train, group = "site", v = 5, balance = "groups")
 # Define recipe
 rec <- recipe(
   flue ~ NR_B1 + NR_B2 + NR_B3 + NR_B4 + NR_B5 + NR_B6 + NR_B7 + LST,
-  data = train |>
-    dplyr::select(-site))
-  # step_normalize(all_predictors())
+  data = train
+  )
 
 ## xgboost  --------------------------------------------------------------------
 ### Model spec ------------
 xgb_spec <- parsnip::boost_tree(
-  trees = 50,
-  min_n = tune()
+  trees = 500,
+  min_n = tune(),
+  # tree_depth = tune(),
+  # learn_rate = tune(),
+  # loss_reduction = tune()
 ) |>
   set_engine("xgboost") |>
   set_mode("regression")
@@ -87,9 +117,13 @@ wf_xgb <- workflow() %>%
   add_model(xgb_spec)
 
 ### Tuning grid -----------
-grid_xgb <- dials::grid_latin_hypercube(
-  tune::extract_parameter_set_dials(wf_xgb),
-  size = 3
+loss_reduction_raw <- loss_reduction(range = c(0, 10), trans = NULL)
+grid_xgb <- grid_space_filling(
+  min_n(range = c(5, 50)),
+  # tree_depth(range = c(3, 12)),
+  # learn_rate(range = c(0.01, 0.3)),
+  # loss_reduction_raw,
+  size = 5  # 30
 )
 
 ### Model tuning --------------
