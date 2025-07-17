@@ -170,5 +170,5 @@ tic()
 final_fit_rf <- fit(final_wf_rf, data = df)
 toc()
 
-saveRDS(final_wf_rf, file = here::here("data/final_wf_rf.rds"))
+saveRDS(final_fit_rf, file = here::here("data/final_fit_rf.rds"))
 
