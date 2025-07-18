@@ -71,7 +71,8 @@ folds <- group_vfold_cv(df, group = "site", v = length(unique(df$site)))
 rec <- recipe(
   flue ~ NR_B1 + NR_B2 + NR_B3 + NR_B4 + NR_B5 + NR_B6 + NR_B7 + LST + vegtype,
   data = df
-  )
+  ) |>
+  step_dummy(vegtype)
 
 ## xgboost  --------------------------------------------------------------------
 ### Model spec ------------
