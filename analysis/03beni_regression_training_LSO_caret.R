@@ -76,11 +76,6 @@ nd_exprs <- band_pairs |>
 
 nd_names <- names(nd_exprs)
 
-impute_only_vars <- c("tair", "r_sw")
-predict_only_vars <- c("tair_era5", "r_sw_era5", "pcwd_era5", nd_names)
-impute_vars <- c(impute_only_vars, band_names)
-impute_and_predict_vars <- c(band_names, predict_only_vars)
-
 # Define recipe
 rec <- recipe(
   flue ~ .,
@@ -90,13 +85,6 @@ rec <- recipe(
   # Role handling
   update_role(site, date, is_flue_drought, new_role = "ID") |>
   update_role(all_of(impute_only_vars), new_role = "impute") |>
-
-  # KNN imputation
-  step_impute_knn(
-    all_of(band_names),
-    impute_with = all_of(impute_vars),
-    neighbors = 5
-    ) |>
 
   # Feature engineering
   step_mutate(!!!nd_exprs) |>

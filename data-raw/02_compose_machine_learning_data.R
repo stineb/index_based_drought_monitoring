@@ -110,6 +110,9 @@ for (target_var in vars_to_impute_2){
   df <- impute_one(target_var, df, impute_predictors_2)
 }
 
+df <- df |>
+  select(-ends_with("_filled"))
+
 vis_miss(df, warn_large_data = FALSE)
 
 # xxx: add ERA5 climate data to be used as model predictors (not for imputation, therefore not from site measurements)
@@ -126,6 +129,6 @@ df <- df |>
 # for machine learning training
 saveRDS(
   df,
-  "data/machine_learning_training_data.rds",
+  here("data/machine_learning_training_data.rds"),
   compress = "xz"
 )
