@@ -31,7 +31,11 @@ df <- read_ml_data(
     NR_B7 = Nadir_Reflectance_Band7,
     LST = LST_Day_1km
   ) |>
-  drop_na(starts_with(any_of("NR_", "LST_")), ends_with(any_of("_era5")))
+  drop_na(
+    starts_with("NR_"),
+    starts_with("LST_"),
+    ends_with("_era5")
+  )
 
 # add vegetation type as predictor
 sites <- df |>
@@ -85,13 +89,12 @@ rec <- recipe(
 
   # Role handling
   update_role(site, date, is_flue_drought, new_role = "ID") |>
-  update_role(all_of(impute_only_vars), new_role = "impute") |>
 
   # Feature engineering
   step_mutate(!!!nd_exprs) |>
 
   # Preprocessing (only model-predictors!)
-  step_normalize(all_numeric_predictors(), -all_of(impute_only_vars)) |>
+  step_normalize(all_numeric_predictors()) |>
   step_novel() |>
   step_dummy(vegtype)
 
