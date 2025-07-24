@@ -111,7 +111,7 @@ for (target_var in vars_to_impute_2){
 }
 
 df <- df |>
-  select(-ends_with("_filled"))
+  select(-ends_with("_filled"), -any_of(c("tair", "r_sw")))
 
 vis_miss(df, warn_large_data = FALSE)
 

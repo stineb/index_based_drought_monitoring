@@ -30,7 +30,8 @@ df <- read_ml_data(
     NR_B6 = Nadir_Reflectance_Band6,
     NR_B7 = Nadir_Reflectance_Band7,
     LST = LST_Day_1km
-  )
+  ) |>
+  drop_na(starts_with(any_of("NR_", "LST_")), ends_with(any_of("_era5")))
 
 # add vegetation type as predictor
 sites <- df |>
