@@ -71,6 +71,15 @@ df <- df |>
   )
 
 ## Common training setup -------------------------------------------------------
+# KNN imputation of missing values with the following predictors
+# note: this is used if `df` contains missing values and if air temperature and
+# shortwave radiation (tair, r_sw) are added as predictors from local measurements.
+nd_names <- names(nd_exprs)
+impute_vars <- c(
+  band_names,          # NR_B1 to NR_B7
+  nd_names,            # nd_NR_B1_NR_B2, etc.
+  "tair", "r_sw"       # additional predictors for imputation
+)
 
 # Define recipe
 rec <- recipe(
@@ -79,6 +88,7 @@ rec <- recipe(
   ) |>
   update_role(site, date, new_role = "ID") |>
   step_mutate(!!!nd_exprs) |>
+  step_impute_knn(all_of(impute_vars), neighbors = 5) |>
   step_normalize(all_numeric_predictors()) |>
   step_novel() |>
   step_dummy(vegtype)

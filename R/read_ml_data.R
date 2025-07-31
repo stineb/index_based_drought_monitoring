@@ -22,7 +22,9 @@ read_ml_data <- function(
       -doy,
       -cluster
     ) |>
-    na.omit()
+    dplyr::mutate(
+      is_flue_drought = as.factor(is_flue_drought)
+    )
 
   if (spatial) {
     ml_df <- ml_df |>
@@ -35,9 +37,6 @@ read_ml_data <- function(
         starts_with("LST")
       )
   }
-
-  # convert factor
-  ml_df$is_flue_drought <- as.factor(ml_df$is_flue_drought)
 
   return(ml_df)
 }
