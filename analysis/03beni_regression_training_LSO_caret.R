@@ -10,6 +10,7 @@ library(ggplot2)
 library(tictoc)
 library(recipes)
 library(vip)
+library(themis)
 # remotes::install_github("geco-bern/rgeco")
 library(rgeco)
 # remotes::install_github("geco-bern/FluxDataKit")
@@ -34,7 +35,8 @@ df <- read_ml_data(
   drop_na(
     starts_with("NR_"),
     starts_with("LST_"),
-    ends_with("_era5")
+    ends_with("_era5"),
+    is_flue_drought
   )
 
 # add vegetation type as predictor
@@ -96,7 +98,13 @@ rec <- recipe(
   # Preprocessing (only model-predictors!)
   step_normalize(all_numeric_predictors()) |>
   step_novel() |>
-  step_dummy(vegtype)
+  step_dummy(vegtype) |>
+
+  # upsample cases when flue is < 1. flue-droughts are now overemphasised and
+  # make up (over_ratio) times the cases of cases for which is_flue_drought is
+  # false.
+  step_upsample(is_flue_drought, over_ratio = 1) |>
+  step_rm(is_flue_drought)
 
 # check roles
 summary(rec)
@@ -104,7 +112,7 @@ summary(rec)
 # Cross-validation by site (number of folds corresponds to number of sites) or group of sites
 folds <- caret::groupKFold(
   df$site,
-  k = 5 # length(unique(df$site))
+  k = length(unique(df$site))
   )
 
 traincotrlParams <- caret::trainControl(
@@ -147,3 +155,5 @@ out <- rgeco::analyse_modobs2(
 )
 
 out$gg
+
+vip(model)
