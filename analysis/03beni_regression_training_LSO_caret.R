@@ -2,14 +2,18 @@
 
 # load the ecosystem
 library(caret)
+library(ranger)
 library(rlang)  # ← required for := and sym()
 library(purrr)
 library(dplyr)
+library(tidyr)
 library(here)
 library(ggplot2)
+library(readr)
 library(tictoc)
 library(recipes)
 library(vip)
+library(themis)
 # remotes::install_github("geco-bern/rgeco")
 library(rgeco)
 # remotes::install_github("geco-bern/FluxDataKit")
@@ -18,51 +22,17 @@ library(FluxDataKit)
 source("R/read_ml_data.R")
 
 ## Read data -------------------------------------------------------------------
-df <- read_ml_data(
-  here::here("data/machine_learning_training_data.rds")
-) |>
-  rename(
-    NR_B1 = Nadir_Reflectance_Band1,
-    NR_B2 = Nadir_Reflectance_Band2,
-    NR_B3 = Nadir_Reflectance_Band3,
-    NR_B4 = Nadir_Reflectance_Band4,
-    NR_B5 = Nadir_Reflectance_Band5,
-    NR_B6 = Nadir_Reflectance_Band6,
-    NR_B7 = Nadir_Reflectance_Band7,
-    LST = LST_Day_1km
-  ) |>
-  drop_na(
-    starts_with("NR_"),
-    starts_with("LST_"),
-    ends_with("_era5")
-  )
+df <- read_rds(here("data/machine_learning_training_data.rds"))
 
-# add vegetation type as predictor
-sites <- df |>
-  select(site) |>
-  distinct() |>
-  left_join(
-    fdk_site_info |>
-      select(site = sitename, vegtype = igbp_land_use),
-    by = join_by(site)
-  )
+# vis_miss(df, warn_large_data = FALSE)
 
-# manually add missing info to site info
-sites$vegtype[which(sites$site == "AR-Vir")] <- "ENF"
-sites$vegtype[which(sites$site == "AU-Ade")] <- "WSA"
-sites$vegtype[which(sites$site == "AU-Fog")] <- "WET"
-sites$vegtype[which(sites$site == "AU-Wom")] <- "EBF"
-sites$vegtype[which(sites$site == "DE-Spw")] <- "WET"
-sites$vegtype[which(sites$site == "DK-NuF")] <- "WET"
-sites$vegtype[which(sites$site == "SN-Dhr")] <- "SAV"
-sites$vegtype[which(sites$site == "US-Wi4")] <- "ENF"
-
-# add vegetation type
 df <- df |>
-  left_join(
-    sites,
-    by = join_by(site)
-  )
+  # not needed
+  select(-cluster) |>
+  # correct
+  mutate(is_flue_drought = as.factor(is_flue_drought)) |>
+  # drop rows with missing data is needed variables
+  drop_na("flue", "is_flue_drought", starts_with("NR_"), "LST", ends_with("_era5"), "vegtype")
 
 ## Common training setup -------------------------------------------------------
 # KNN imputation of missing values with the following predictors
@@ -96,7 +66,13 @@ rec <- recipe(
   # Preprocessing (only model-predictors!)
   step_normalize(all_numeric_predictors()) |>
   step_novel() |>
-  step_dummy(vegtype)
+  step_dummy(vegtype) |>
+
+  # upsample cases when flue is < 1. flue-droughts are now overemphasised and
+  # make up (over_ratio) times the cases of cases for which is_flue_drought is
+  # false.
+  step_upsample(is_flue_drought, over_ratio = 1) |>
+  step_rm(is_flue_drought)
 
 # check roles
 summary(rec)
@@ -129,7 +105,8 @@ model <- train(
   replace         = TRUE,
   sample.fraction = 0.5,
   num.trees       = 500,         # to be boosted to 2000 for the final model
-  importance      = "impurity"   # for variable importance analysis, alternative: "permutation"
+  importance      = "impurity",  # for variable importance analysis, alternative: "permutation"
+  ranger.num.threads = 5
 )
 
 
@@ -147,3 +124,5 @@ out <- rgeco::analyse_modobs2(
 )
 
 out$gg
+
+vip(model)
