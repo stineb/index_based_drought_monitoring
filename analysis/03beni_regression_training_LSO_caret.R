@@ -2,11 +2,14 @@
 
 # load the ecosystem
 library(caret)
+library(ranger)
 library(rlang)  # ← required for := and sym()
 library(purrr)
 library(dplyr)
+library(tidyr)
 library(here)
 library(ggplot2)
+library(readr)
 library(tictoc)
 library(recipes)
 library(vip)
@@ -19,9 +22,17 @@ library(FluxDataKit)
 source("R/read_ml_data.R")
 
 ## Read data -------------------------------------------------------------------
-df <- read_ml_data(
-  here::here("data/machine_learning_training_data.rds")
-)
+df <- read_rds(here("data/machine_learning_training_data.rds"))
+
+# vis_miss(df, warn_large_data = FALSE)
+
+df <- df |>
+  # not needed
+  select(-cluster) |>
+  # correct
+  mutate(is_flue_drought = as.factor(is_flue_drought)) |>
+  # drop rows with missing data is needed variables
+  drop_na("flue", "is_flue_drought", starts_with("NR_"), "LST", ends_with("_era5"), "vegtype")
 
 ## Common training setup -------------------------------------------------------
 # KNN imputation of missing values with the following predictors
@@ -69,7 +80,7 @@ summary(rec)
 # Cross-validation by site (number of folds corresponds to number of sites) or group of sites
 folds <- caret::groupKFold(
   df$site,
-  k = length(unique(df$site))
+  k = 5 # length(unique(df$site))
   )
 
 traincotrlParams <- caret::trainControl(
@@ -94,7 +105,8 @@ model <- train(
   replace         = TRUE,
   sample.fraction = 0.5,
   num.trees       = 500,         # to be boosted to 2000 for the final model
-  importance      = "impurity"   # for variable importance analysis, alternative: "permutation"
+  importance      = "impurity",  # for variable importance analysis, alternative: "permutation"
+  ranger.num.threads = 5
 )
 
 
