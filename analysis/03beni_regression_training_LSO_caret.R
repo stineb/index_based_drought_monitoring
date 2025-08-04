@@ -21,50 +21,7 @@ source("R/read_ml_data.R")
 ## Read data -------------------------------------------------------------------
 df <- read_ml_data(
   here::here("data/machine_learning_training_data.rds")
-) |>
-  rename(
-    NR_B1 = Nadir_Reflectance_Band1,
-    NR_B2 = Nadir_Reflectance_Band2,
-    NR_B3 = Nadir_Reflectance_Band3,
-    NR_B4 = Nadir_Reflectance_Band4,
-    NR_B5 = Nadir_Reflectance_Band5,
-    NR_B6 = Nadir_Reflectance_Band6,
-    NR_B7 = Nadir_Reflectance_Band7,
-    LST = LST_Day_1km
-  ) |>
-  drop_na(
-    starts_with("NR_"),
-    starts_with("LST_"),
-    ends_with("_era5"),
-    is_flue_drought
-  )
-
-# add vegetation type as predictor
-sites <- df |>
-  select(site) |>
-  distinct() |>
-  left_join(
-    fdk_site_info |>
-      select(site = sitename, vegtype = igbp_land_use),
-    by = join_by(site)
-  )
-
-# manually add missing info to site info
-sites$vegtype[which(sites$site == "AR-Vir")] <- "ENF"
-sites$vegtype[which(sites$site == "AU-Ade")] <- "WSA"
-sites$vegtype[which(sites$site == "AU-Fog")] <- "WET"
-sites$vegtype[which(sites$site == "AU-Wom")] <- "EBF"
-sites$vegtype[which(sites$site == "DE-Spw")] <- "WET"
-sites$vegtype[which(sites$site == "DK-NuF")] <- "WET"
-sites$vegtype[which(sites$site == "SN-Dhr")] <- "SAV"
-sites$vegtype[which(sites$site == "US-Wi4")] <- "ENF"
-
-# add vegetation type
-df <- df |>
-  left_join(
-    sites,
-    by = join_by(site)
-  )
+)
 
 ## Common training setup -------------------------------------------------------
 # KNN imputation of missing values with the following predictors

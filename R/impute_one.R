@@ -49,7 +49,7 @@ impute_one <- function(target_var, df, impute_predictors) {
   d_missing[[varnam_filled]] <- preds
 
   # fill missing values
-  out <- df |>
+  df <- df |>
     left_join(
       d_missing |>
         select(all_of(c("site", "date", varnam_filled))),
@@ -57,5 +57,5 @@ impute_one <- function(target_var, df, impute_predictors) {
     ) |>
     mutate(!!target_var := ifelse(is.na(!!sym(target_var)), !!sym(varnam_filled), !!sym(target_var)))
 
-  return(out)
+  return(list(df = df, model = model))
 }
