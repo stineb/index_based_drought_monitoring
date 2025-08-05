@@ -80,7 +80,7 @@ summary(rec)
 # Cross-validation by site (number of folds corresponds to number of sites) or group of sites
 folds <- caret::groupKFold(
   df$site,
-  k = 5 # length(unique(df$site))
+  k = length(unique(df$site))
   )
 
 traincotrlParams <- caret::trainControl(
@@ -90,7 +90,7 @@ traincotrlParams <- caret::trainControl(
 )
 
 tune_grid <- expand.grid(
-  .mtry = 3, # c(3, 5, 7),
+  .mtry = 7, # c(3, 5, 7),
   .min.node.size = 15, # c(5, 15, 25),
   .splitrule = "variance"
 )
@@ -109,11 +109,15 @@ model <- train(
   ranger.num.threads = 5
 )
 
+saveRDS(model, file = here("data/model_rf.rds"))
 
 # inspect out-of-sample validation results visually
 preds <- model$pred
 preds$site <- df$site[preds$rowIndex]
 
+write_csv(preds, file = here("data/preds_rf.csv"))
+
+# evaluate overall skill on pooled data from all sites
 out <- rgeco::analyse_modobs2(
   preds,
   mod = "pred",
@@ -125,4 +129,56 @@ out <- rgeco::analyse_modobs2(
 
 out$gg
 
+# variable importance plot
 vip(model)
+
+# evaluate by site
+my_analyse_modobs2 <- function(df, use_sitename, ...){
+
+  out <- rgeco::analyse_modobs2(
+    df,
+    mod = "pred",
+    obs = "obs",
+    type = "hex",
+    pal = "magma",
+    shortsubtitle = TRUE
+  )
+
+  out$gg <- out$gg +
+    labs(title = use_sitename)
+
+  return(out)
+}
+
+preds_nested <- preds |>
+  group_by(site) |>
+  nest() |>
+  mutate(modobs = purrr::map2(
+    data,
+    site,
+    ~my_analyse_modobs2(.x, .y))) |>
+  mutate(gg = purrr::map(modobs, "gg"))
+
+cowplot::plot_grid(
+  plotlist = preds_nested$gg[1:20],
+  ncol = 4
+)
+ggsave(here("fig/plot_modobs_bysite_A.pdf"), width = 10, height = 8)
+
+cowplot::plot_grid(
+  plotlist = preds_nested$gg[21:40],
+  ncol = 4
+)
+ggsave(here("fig/plot_modobs_bysite_B.pdf"), width = 10, height = 8)
+
+cowplot::plot_grid(
+  plotlist = preds_nested$gg[41:60],
+  ncol = 4
+)
+ggsave(here("fig/plot_modobs_bysite_C.pdf"), width = 10, height = 8)
+
+cowplot::plot_grid(
+  plotlist = preds_nested$gg[61:69],
+  ncol = 4
+)
+ggsave(here("fig/plot_modobs_bysite_D.pdf"), width = 10, height = 3)
