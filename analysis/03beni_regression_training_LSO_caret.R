@@ -163,22 +163,22 @@ cowplot::plot_grid(
   plotlist = preds_nested$gg[1:20],
   ncol = 4
 )
-ggsave(here("fig/plot_modobs_bysite_A.pdf"), width = 10, height = 8)
+ggsave(here("fig/plot_modobs_bysite_A.pdf"), width = 20, height = 16)
 
 cowplot::plot_grid(
   plotlist = preds_nested$gg[21:40],
   ncol = 4
 )
-ggsave(here("fig/plot_modobs_bysite_B.pdf"), width = 10, height = 8)
+ggsave(here("fig/plot_modobs_bysite_B.pdf"), width = 20, height = 16)
 
 cowplot::plot_grid(
   plotlist = preds_nested$gg[41:60],
   ncol = 4
 )
-ggsave(here("fig/plot_modobs_bysite_C.pdf"), width = 10, height = 8)
+ggsave(here("fig/plot_modobs_bysite_C.pdf"), width = 20, height = 16)
 
 cowplot::plot_grid(
   plotlist = preds_nested$gg[61:69],
   ncol = 4
 )
-ggsave(here("fig/plot_modobs_bysite_D.pdf"), width = 10, height = 3)
+ggsave(here("fig/plot_modobs_bysite_D.pdf"), width = 20, height = 8)
