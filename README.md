@@ -15,6 +15,25 @@ The analysis was limited to locations where soil droughts could be quantified ba
 
 Model fitting was done with `analysis/03beni_regression_training_LSO_caret.R`
 
+## data-raw
+The data-raw folder contain raw data and the scripts to download modis data and compose the machine learning dataset.
+
+## data 
+The data folder contains analysis ready data. The ready to use trained model `model_rf.rds`, and composed machine learning dataset `machine_learning_training_data.rds`. 
+
+## analysis
+This folder includes scripts used for analysis and modeling:
+Correlation plot of flue and modis bands : `00yousra_correlation_analysis.R`
+Model training with `analysis/03beni_regression_training_LSO_caret.R`
+Preparation of predictor rasters and spatial upscaling across Central Europe: `06yousra_spatial_upscaling_centrale_europe.R`
+
+## vignettes
+This folder contains R Markdown files for figures and analysis:
+Model evaluation and VIP plot figures generated with code `variable_importance.Rmd`
+Linear correlation of fLUE* with fLUE and VIs figures in `fLUE_vs_VIs.Rmd` 
+fLUE and NDVI variations across centrale Europe in 2018 and 2020 and per vegetation type `spatial_patterns_plotting.Rmd`
+
+
 ## GEE install
 
 https://developers.google.com/earth-engine/guides/python_install-conda
